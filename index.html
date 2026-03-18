@@ -544,94 +544,105 @@ body {
   box-shadow: 0 0 0 3px rgba(26,58,94,0.15);
 }
 
-/* Custom dropdown */
-.inline-dropdown {
+/* ===== QE DROPDOWN (fixed, floats over cards) ===== */
+.qe-dropdown-wrap {
   position: relative;
   width: 100%;
 }
-.inline-dropdown-trigger {
+.qe-dropdown-selected {
   width: 100%; padding: 5px 28px 5px 10px;
-  border: 2px solid var(--primary); border-radius: 8px;
+  border: 1.5px solid var(--info); border-radius: 8px;
   font-size: 12px; font-family: inherit;
   background: #fff; color: var(--text-primary);
   cursor: pointer; text-align: left;
-  box-shadow: 0 0 0 3px rgba(26,58,94,0.1);
   position: relative;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  transition: border-color 0.2s, box-shadow 0.2s;
 }
-.inline-dropdown-trigger::after {
-  content: '';
-  position: absolute; right: 10px; top: 50%;
-  transform: translateY(-50%) rotate(0deg);
-  width: 0; height: 0;
-  border-left: 5px solid transparent;
-  border-right: 5px solid transparent;
-  border-top: 5px solid var(--primary);
-  transition: transform 0.2s;
+.qe-dropdown-wrap.open .qe-dropdown-selected {
+  border-color: var(--primary);
+  border-radius: 8px 8px 0 0;
+  box-shadow: 0 0 0 3px rgba(26,58,94,0.1);
 }
-.inline-dropdown.open .inline-dropdown-trigger::after {
+.qe-dropdown-selected::after {
+  content: '▼';
+  position: absolute; right: 8px; top: 50%;
+  transform: translateY(-50%);
+  font-size: 9px; color: var(--text-secondary);
+  transition: transform 0.25s;
+}
+.qe-dropdown-wrap.open .qe-dropdown-selected::after {
   transform: translateY(-50%) rotate(180deg);
+  color: var(--primary);
 }
-.inline-dropdown-menu {
+.qe-dropdown-list {
   position: fixed;
-  min-width: 200px;
+  z-index: 9999;
   background: #fff;
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  box-shadow: 0 8px 30px rgba(0,0,0,0.15);
-  max-height: 220px; overflow-y: auto;
-  z-index: 9000;
-  padding: 4px;
-  opacity: 0; transform: translateY(-8px) scale(0.97);
-  animation: dropdownIn 0.2s ease-out forwards;
+  border: 1.5px solid var(--primary);
+  border-top: none;
+  border-radius: 0 0 10px 10px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.18);
+  max-height: 0;
+  overflow: hidden;
+  opacity: 0;
+  transition: max-height 0.25s ease, opacity 0.2s ease;
 }
-@keyframes dropdownIn {
-  to { opacity: 1; transform: translateY(0) scale(1); }
+.qe-dropdown-wrap.open .qe-dropdown-list {
+  max-height: 240px;
+  overflow-y: auto;
+  opacity: 1;
 }
-.inline-dropdown-item {
-  padding: 8px 12px;
-  border-radius: 7px;
+.qe-dropdown-item {
+  padding: 9px 12px;
   font-size: 12px;
   cursor: pointer;
-  transition: all 0.12s;
+  transition: background 0.12s;
   color: var(--text-primary);
   display: flex; align-items: center; gap: 8px;
+  border-bottom: 1px solid #f1f5f9;
 }
-.inline-dropdown-item:hover {
+.qe-dropdown-item:last-child { border-bottom: none; }
+.qe-dropdown-item:hover {
   background: linear-gradient(135deg, #f0f4ff, #f5f0ff);
 }
-.inline-dropdown-item:active { transform: scale(0.98); }
-.inline-dropdown-item.selected {
+.qe-dropdown-item:active { background: #e0e7ff; }
+.qe-dropdown-item.active {
   background: var(--primary);
   color: #fff;
   font-weight: 600;
 }
-.inline-dropdown-item.selected:hover {
+.qe-dropdown-item.active:hover {
   background: var(--primary-dark);
 }
-.inline-dropdown-item .dd-check {
-  width: 16px; height: 16px;
-  border-radius: 4px;
+.qe-dropdown-item .dd-icon {
+  width: 18px; height: 18px;
+  border-radius: 5px;
   border: 2px solid var(--border);
   display: flex; align-items: center; justify-content: center;
-  font-size: 10px; color: transparent;
+  font-size: 11px; color: transparent;
   flex-shrink: 0;
   transition: all 0.15s;
 }
-.inline-dropdown-item.selected .dd-check {
+.qe-dropdown-item.active .dd-icon {
   background: #fff;
   border-color: #fff;
   color: var(--primary);
+  font-weight: 700;
 }
-.inline-dropdown-item-empty {
+.qe-dropdown-item-clear {
   color: var(--text-secondary);
   font-style: italic;
+  font-size: 11px;
 }
-/* Scrollbar for dropdown */
-.inline-dropdown-menu::-webkit-scrollbar { width: 4px; }
-.inline-dropdown-menu::-webkit-scrollbar-track { background: transparent; }
-.inline-dropdown-menu::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
-.inline-dropdown-menu::-webkit-scrollbar-thumb:hover { background: var(--text-secondary); }
+/* Scrollbar */
+.qe-dropdown-list::-webkit-scrollbar { width: 5px; }
+.qe-dropdown-list::-webkit-scrollbar-track { background: transparent; }
+.qe-dropdown-list::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 5px; }
+.qe-dropdown-list::-webkit-scrollbar-thumb:hover { background: var(--text-secondary); }
+/* Overflow fix while editing */
+.card-details.editing-active { overflow: visible !important; }
+.detail-tab-panel.editing-active { overflow: visible !important; }
 
 /* ===== BOTTOM NAV ===== */
 .bottom-nav {
@@ -2403,7 +2414,7 @@ function getFieldOptions(col) {
 }
 
 function startInlineEdit(el, pkgId, col) {
-  if (el.querySelector('input') || el.querySelector('.inline-dropdown')) return;
+  if (el.querySelector('input') || el.querySelector('.qe-dropdown-wrap')) return;
   const valEl = el.querySelector('.val-text, .val-empty');
   const currentVal = valEl && valEl.classList.contains('val-text') ? valEl.textContent.trim() : '';
   const options = getFieldOptions(col);
@@ -2411,106 +2422,52 @@ function startInlineEdit(el, pkgId, col) {
   el.innerHTML = '';
 
   if (options) {
-    // Custom styled dropdown
-    const dd = document.createElement('div');
-    dd.className = 'inline-dropdown open';
+    // === QE DROPDOWN: position:fixed, floats over everything ===
+    const wrap = document.createElement('div');
+    wrap.className = 'qe-dropdown-wrap';
+    wrap.setAttribute('data-pkg', pkgId);
+    wrap.setAttribute('data-col', col);
+    wrap.setAttribute('data-old', currentVal);
 
-    const trigger = document.createElement('div');
-    trigger.className = 'inline-dropdown-trigger';
-    trigger.textContent = currentVal || '— Оберіть —';
-    if (!currentVal) trigger.style.color = 'var(--text-secondary)';
-    dd.appendChild(trigger);
+    // Selected trigger
+    const sel = document.createElement('div');
+    sel.className = 'qe-dropdown-selected';
+    sel.textContent = currentVal || '— Оберіть —';
+    wrap.appendChild(sel);
 
-    const menu = document.createElement('div');
-    menu.className = 'inline-dropdown-menu';
+    // Dropdown list
+    const list = document.createElement('div');
+    list.className = 'qe-dropdown-list';
 
-    // Clear option
+    // Clear/empty option
     const clearItem = document.createElement('div');
-    clearItem.className = 'inline-dropdown-item inline-dropdown-item-empty';
-    clearItem.innerHTML = '<span class="dd-check"></span> — Очистити —';
-    clearItem.onclick = function(e) {
-      e.stopPropagation();
-      closeInlineDropdown(el, pkgId, col, '');
-    };
-    menu.appendChild(clearItem);
+    clearItem.className = 'qe-dropdown-item qe-dropdown-item-clear';
+    clearItem.setAttribute('data-val', '');
+    clearItem.innerHTML = '<span class="dd-icon"></span> — Очистити —';
+    list.appendChild(clearItem);
 
-    options.forEach(opt => {
+    options.forEach(function(opt) {
       if (opt === '') return;
       const item = document.createElement('div');
-      const isSelected = opt === currentVal;
-      item.className = 'inline-dropdown-item' + (isSelected ? ' selected' : '');
-      item.innerHTML = `<span class="dd-check">${isSelected ? '✓' : ''}</span> ${opt}`;
-      item.onclick = function(e) {
-        e.stopPropagation();
-        closeInlineDropdown(el, pkgId, col, opt);
-      };
-      menu.appendChild(item);
+      const isActive = opt === currentVal;
+      item.className = 'qe-dropdown-item' + (isActive ? ' active' : '');
+      item.setAttribute('data-val', opt);
+      item.innerHTML = '<span class="dd-icon">' + (isActive ? '✓' : '') + '</span> ' + opt;
+      list.appendChild(item);
     });
 
-    el.appendChild(dd);
-    // Append menu to body so it floats over everything
-    document.body.appendChild(menu);
+    wrap.appendChild(list);
+    el.appendChild(wrap);
 
-    // Position menu relative to trigger
-    function positionMenu() {
-      const rect = trigger.getBoundingClientRect();
-      const menuH = Math.min(menu.scrollHeight, 220);
-      const spaceBelow = window.innerHeight - rect.bottom - 8;
-      const spaceAbove = rect.top - 8;
+    // Add editing-active class to parent containers for overflow:visible
+    const cardDetails = el.closest('.card-details');
+    const tabPanel = el.closest('.detail-tab-panel');
+    if (cardDetails) cardDetails.classList.add('editing-active');
+    if (tabPanel) tabPanel.classList.add('editing-active');
 
-      menu.style.left = rect.left + 'px';
-      menu.style.width = Math.max(rect.width, 200) + 'px';
-
-      if (spaceBelow >= menuH || spaceBelow >= spaceAbove) {
-        menu.style.top = (rect.bottom + 4) + 'px';
-        menu.style.bottom = 'auto';
-      } else {
-        menu.style.bottom = (window.innerHeight - rect.top + 4) + 'px';
-        menu.style.top = 'auto';
-      }
-    }
-    positionMenu();
-
-    // Cleanup function to remove floating menu
-    function cleanupMenu() {
-      if (menu.parentNode === document.body) document.body.removeChild(menu);
-      document.removeEventListener('click', closeHandler);
-      document.removeEventListener('keydown', keyHandler);
-      window.removeEventListener('scroll', positionMenu, true);
-    }
-
-    // Toggle on trigger click
-    trigger.onclick = function(e) {
-      e.stopPropagation();
-      const isOpen = dd.classList.toggle('open');
-      menu.style.display = isOpen ? '' : 'none';
-      if (isOpen) positionMenu();
-    };
-
-    // Close on outside click
-    const closeHandler = function(e) {
-      if (!dd.contains(e.target) && !menu.contains(e.target)) {
-        cleanupMenu();
-        restoreBlock(el, currentVal, pkgId, col);
-      }
-    };
-    setTimeout(() => document.addEventListener('click', closeHandler), 10);
-
-    // Reposition on scroll
-    window.addEventListener('scroll', positionMenu, true);
-
-    // Escape key
-    const keyHandler = function(e) {
-      if (e.key === 'Escape') {
-        cleanupMenu();
-        restoreBlock(el, currentVal, pkgId, col);
-      }
-    };
-    document.addEventListener('keydown', keyHandler);
-
-    // Scroll selected into view
-    const selectedEl = menu.querySelector('.selected');
-    if (selectedEl) setTimeout(() => selectedEl.scrollIntoView({ block: 'nearest' }), 50);
+    // Open immediately + position
+    wrap.classList.add('open');
+    _positionDropdownList(wrap);
 
   } else {
     // Text input
@@ -2527,11 +2484,91 @@ function startInlineEdit(el, pkgId, col) {
   }
 }
 
-function closeInlineDropdown(el, pkgId, col, value) {
-  // Remove floating menu from body
-  document.querySelectorAll('body > .inline-dropdown-menu').forEach(m => m.remove());
-  saveInlineEdit(pkgId, col, value, el);
+// Position the fixed dropdown list right below the trigger
+function _positionDropdownList(wrap) {
+  var sel = wrap.querySelector('.qe-dropdown-selected');
+  var list = wrap.querySelector('.qe-dropdown-list');
+  if (!sel || !list) return;
+  var rect = sel.getBoundingClientRect();
+  list.style.left = rect.left + 'px';
+  list.style.top = rect.bottom + 'px';
+  list.style.width = Math.max(rect.width, 180) + 'px';
 }
+
+// Close all open dropdowns + cleanup
+function _closeAllDropdowns(saveValue) {
+  document.querySelectorAll('.qe-dropdown-wrap.open').forEach(function(wrap) {
+    var pkgId = wrap.getAttribute('data-pkg');
+    var col = wrap.getAttribute('data-col');
+    var oldVal = wrap.getAttribute('data-old');
+    var el = wrap.closest('.detail-block-value');
+
+    wrap.classList.remove('open');
+
+    // Remove editing-active
+    document.querySelectorAll('.editing-active').forEach(function(e) {
+      e.classList.remove('editing-active');
+    });
+
+    if (el) {
+      if (saveValue !== undefined && saveValue !== null) {
+        saveInlineEdit(pkgId, col, saveValue, el);
+      } else {
+        restoreBlock(el, oldVal, pkgId, col);
+      }
+    }
+  });
+}
+
+// === DELEGATED EVENT HANDLERS (one-time setup) ===
+// Click on .qe-dropdown-selected → toggle
+document.addEventListener('click', function(e) {
+  var selBtn = e.target.closest('.qe-dropdown-selected');
+  if (selBtn) {
+    e.stopPropagation();
+    var wrap = selBtn.closest('.qe-dropdown-wrap');
+    if (wrap) {
+      var wasOpen = wrap.classList.contains('open');
+      // Close any other open dropdowns first
+      _closeAllDropdowns();
+      if (!wasOpen) {
+        wrap.classList.add('open');
+        _positionDropdownList(wrap);
+        var cardDetails = wrap.closest('.card-details');
+        var tabPanel = wrap.closest('.detail-tab-panel');
+        if (cardDetails) cardDetails.classList.add('editing-active');
+        if (tabPanel) tabPanel.classList.add('editing-active');
+      }
+    }
+    return;
+  }
+
+  // Click on .qe-dropdown-item → save value
+  var item = e.target.closest('.qe-dropdown-item');
+  if (item) {
+    e.stopPropagation();
+    var val = item.getAttribute('data-val');
+    _closeAllDropdowns(val);
+    return;
+  }
+
+  // Click outside → close without saving
+  if (!e.target.closest('.qe-dropdown-wrap')) {
+    _closeAllDropdowns();
+  }
+});
+
+// Escape → close without saving
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape') {
+    _closeAllDropdowns();
+  }
+});
+
+// Reposition on scroll
+window.addEventListener('scroll', function() {
+  document.querySelectorAll('.qe-dropdown-wrap.open').forEach(_positionDropdownList);
+}, true);
 
 function saveInlineEdit(pkgId, col, value, el) {
   const item = allData.find(p => p['PKG_ID'] === pkgId);
@@ -2549,8 +2586,8 @@ function saveInlineEdit(pkgId, col, value, el) {
 }
 
 function restoreBlock(el, value, pkgId, col) {
-  // Clean up any floating dropdown menus
-  document.querySelectorAll('body > .inline-dropdown-menu').forEach(m => m.remove());
+  // Remove editing-active classes
+  document.querySelectorAll('.editing-active').forEach(function(e) { e.classList.remove('editing-active'); });
   const v = value ? value.trim() : '';
   el.innerHTML = v
     ? `<span class="val-text">${v}</span>`
