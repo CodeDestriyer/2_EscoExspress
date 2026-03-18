@@ -2414,7 +2414,7 @@ function getFieldOptions(col) {
 }
 
 function startInlineEdit(el, pkgId, col) {
-  // If dropdown already exists — do nothing (delegated handler manages it)
+  // If dropdown or input already exists — skip
   if (el.querySelector('.qe-dropdown-wrap') || el.querySelector('input')) return;
 
   const valEl = el.querySelector('.val-text, .val-empty');
@@ -2424,53 +2424,8 @@ function startInlineEdit(el, pkgId, col) {
   el.innerHTML = '';
 
   if (options) {
-    // === QE DROPDOWN: position:fixed, floats over cards ===
-    const wrap = document.createElement('div');
-    wrap.className = 'qe-dropdown-wrap open';
-    wrap.setAttribute('data-pkg', pkgId);
-    wrap.setAttribute('data-col', col);
-    wrap.setAttribute('data-old', currentVal);
-
-    // Trigger button
-    const sel = document.createElement('div');
-    sel.className = 'qe-dropdown-selected';
-    sel.textContent = currentVal || '— Оберіть —';
-    wrap.appendChild(sel);
-
-    // List
-    const list = document.createElement('div');
-    list.className = 'qe-dropdown-list';
-
-    // "Clear" option
-    const clearItem = document.createElement('div');
-    clearItem.className = 'qe-dropdown-item qe-dropdown-item-clear';
-    clearItem.setAttribute('data-val', '');
-    clearItem.innerHTML = '<span class="dd-icon"></span> — Очистити —';
-    list.appendChild(clearItem);
-
-    options.forEach(function(opt) {
-      if (opt === '') return;
-      const item = document.createElement('div');
-      item.className = 'qe-dropdown-item' + (opt === currentVal ? ' active' : '');
-      item.setAttribute('data-val', opt);
-      item.innerHTML = '<span class="dd-icon">' + (opt === currentVal ? '✓' : '') + '</span> ' + opt;
-      list.appendChild(item);
-    });
-
-    wrap.appendChild(list);
-    el.appendChild(wrap);
-
-    // Overflow fix on parents
-    const cardDetails = el.closest('.card-details');
-    const tabPanel = el.closest('.detail-tab-panel');
-    if (cardDetails) cardDetails.classList.add('editing-active');
-    if (tabPanel) tabPanel.classList.add('editing-active');
-
-    // Position fixed list
-    _positionDropdownList(wrap);
-
+    _createQeDropdown(el, pkgId, col, currentVal, options);
   } else {
-    // Text input for non-dropdown fields
     const input = document.createElement('input');
     input.type = 'text';
     input.value = currentVal;
@@ -2484,7 +2439,97 @@ function startInlineEdit(el, pkgId, col) {
   }
 }
 
-// Position the fixed list below the trigger
+function _createQeDropdown(el, pkgId, col, currentVal, options) {
+  const wrap = document.createElement('div');
+  wrap.className = 'qe-dropdown-wrap open';
+
+  // --- Trigger ---
+  const sel = document.createElement('div');
+  sel.className = 'qe-dropdown-selected';
+  sel.textContent = currentVal || '— Оберіть —';
+  // DIRECT handler: toggle open/close
+  sel.addEventListener('click', function(e) {
+    e.stopPropagation();
+    e.preventDefault();
+    wrap.classList.toggle('open');
+    if (wrap.classList.contains('open')) _positionDropdownList(wrap);
+  });
+  wrap.appendChild(sel);
+
+  // --- List ---
+  const list = document.createElement('div');
+  list.className = 'qe-dropdown-list';
+
+  // Helper: make one item
+  function makeItem(label, val, isActive, isClear) {
+    const item = document.createElement('div');
+    item.className = 'qe-dropdown-item' + (isActive ? ' active' : '') + (isClear ? ' qe-dropdown-item-clear' : '');
+    item.innerHTML = '<span class="dd-icon">' + (isActive ? '✓' : '') + '</span> ' + label;
+    // DIRECT handler: pick value
+    item.addEventListener('click', function(e) {
+      e.stopPropagation();
+      e.preventDefault();
+      _qeCleanup();
+      saveInlineEdit(pkgId, col, val, el);
+    });
+    return item;
+  }
+
+  list.appendChild(makeItem('— Очистити —', '', false, true));
+  options.forEach(function(opt) {
+    if (opt === '') return;
+    list.appendChild(makeItem(opt, opt, opt === currentVal, false));
+  });
+
+  wrap.appendChild(list);
+  el.appendChild(wrap);
+
+  // Overflow fix
+  const cardDetails = el.closest('.card-details');
+  const tabPanel = el.closest('.detail-tab-panel');
+  if (cardDetails) cardDetails.classList.add('editing-active');
+  if (tabPanel) tabPanel.classList.add('editing-active');
+
+  // Position
+  _positionDropdownList(wrap);
+
+  // --- Outside click: close & restore ---
+  function onOutsideClick(e) {
+    if (wrap.contains(e.target)) return;
+    _qeCleanup();
+    restoreBlock(el, currentVal, pkgId, col);
+  }
+
+  // --- Escape ---
+  function onEscape(e) {
+    if (e.key === 'Escape') {
+      _qeCleanup();
+      restoreBlock(el, currentVal, pkgId, col);
+    }
+  }
+
+  // --- Scroll reposition ---
+  function onScroll() {
+    if (wrap.classList.contains('open')) _positionDropdownList(wrap);
+  }
+
+  // Cleanup all listeners
+  function _qeCleanup() {
+    document.removeEventListener('click', onOutsideClick, true);
+    document.removeEventListener('keydown', onEscape);
+    window.removeEventListener('scroll', onScroll, true);
+    document.querySelectorAll('.editing-active').forEach(function(e) { e.classList.remove('editing-active'); });
+  }
+
+  // Attach listeners with slight delay so creation click doesn't trigger close
+  setTimeout(function() {
+    document.addEventListener('click', onOutsideClick, true);
+    document.addEventListener('keydown', onEscape);
+    window.addEventListener('scroll', onScroll, true);
+  }, 20);
+}
+
+// Position fixed list below trigger
 function _positionDropdownList(wrap) {
   var sel = wrap.querySelector('.qe-dropdown-selected');
   var list = wrap.querySelector('.qe-dropdown-list');
@@ -2494,72 +2539,6 @@ function _positionDropdownList(wrap) {
   list.style.top = rect.bottom + 'px';
   list.style.width = Math.max(rect.width, 180) + 'px';
 }
-
-// Close a specific dropdown (restore old value)
-function _closeDropdown(wrap) {
-  if (!wrap) return;
-  var pkgId = wrap.getAttribute('data-pkg');
-  var col = wrap.getAttribute('data-col');
-  var oldVal = wrap.getAttribute('data-old');
-  var el = wrap.closest('.detail-block-value');
-  document.querySelectorAll('.editing-active').forEach(function(e) { e.classList.remove('editing-active'); });
-  if (el) restoreBlock(el, oldVal, pkgId, col);
-}
-
-// Save a specific dropdown (commit chosen value)
-function _saveDropdown(wrap, val) {
-  if (!wrap) return;
-  var pkgId = wrap.getAttribute('data-pkg');
-  var col = wrap.getAttribute('data-col');
-  var el = wrap.closest('.detail-block-value');
-  document.querySelectorAll('.editing-active').forEach(function(e) { e.classList.remove('editing-active'); });
-  if (el) saveInlineEdit(pkgId, col, val, el);
-}
-
-// === DELEGATED HANDLERS (once on document) ===
-document.addEventListener('click', function(e) {
-  // 1. Click on trigger → toggle open/close
-  var selBtn = e.target.closest('.qe-dropdown-selected');
-  if (selBtn) {
-    var wrap = selBtn.closest('.qe-dropdown-wrap');
-    if (!wrap) return;
-    if (wrap.classList.contains('open')) {
-      // Collapse — just toggle class, keep dropdown alive
-      wrap.classList.remove('open');
-    } else {
-      wrap.classList.add('open');
-      _positionDropdownList(wrap);
-    }
-    return;
-  }
-
-  // 2. Click on item → save and destroy
-  var item = e.target.closest('.qe-dropdown-item');
-  if (item) {
-    var wrap = item.closest('.qe-dropdown-wrap');
-    var val = item.getAttribute('data-val');
-    _saveDropdown(wrap, val);
-    return;
-  }
-
-  // 3. Click outside any dropdown → close all open ones
-  var anyOpen = document.querySelectorAll('.qe-dropdown-wrap.open');
-  anyOpen.forEach(function(wrap) {
-    if (!wrap.contains(e.target)) {
-      _closeDropdown(wrap);
-    }
-  });
-});
-
-document.addEventListener('keydown', function(e) {
-  if (e.key === 'Escape') {
-    document.querySelectorAll('.qe-dropdown-wrap.open').forEach(_closeDropdown);
-  }
-});
-
-window.addEventListener('scroll', function() {
-  document.querySelectorAll('.qe-dropdown-wrap.open').forEach(_positionDropdownList);
-}, true);
 
 function saveInlineEdit(pkgId, col, value, el) {
   const item = allData.find(p => p['PKG_ID'] === pkgId);
