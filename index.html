@@ -1395,6 +1395,7 @@ let allData = [];
 let filteredData = [];
 let currentDirection = 'ue';
 let currentFilter = 'all';
+let currentVerifyFilter = 'all';
 let currentPayFilter = 'all';
 let searchQuery = '';
 let openCardId = null;
@@ -1589,13 +1590,18 @@ function filterData() {
     data = data.filter(p => p['Напрям'] === 'ЄВ→УК');
   }
 
-  // Verification / status filter
-  if (currentFilter === 'checking') {
+  // Verification filter (sidebar: Всі / В перевірці / Готові / Невідомі)
+  if (currentVerifyFilter === 'checking') {
     data = data.filter(p => p['Контроль перевірки'] === 'В перевірці');
-  } else if (currentFilter === 'ready') {
+  } else if (currentVerifyFilter === 'ready') {
     data = data.filter(p => p['Контроль перевірки'] === 'Готова до маршруту');
-  } else if (currentFilter === 'unknown') {
+  } else if (currentVerifyFilter === 'unknown') {
     data = data.filter(p => p['Статус ліда'] === 'Невідомий');
+  }
+
+  // Lead status filter (chip bar)
+  if (currentFilter !== 'all') {
+    data = data.filter(p => p['Статус ліда'] === currentFilter);
   }
 
   // Payment filter
@@ -2258,7 +2264,7 @@ function updateCounters() {
 
 // ===== PLACEHOLDER FUNCTIONS =====
 function setFilter(f) {
-  currentFilter = f;
+  currentVerifyFilter = f;
   // Update mobile sidebar active state
   document.querySelectorAll('#mobileSidebar .mob-item').forEach(el => {
     const onclickAttr = el.getAttribute('onclick') || '';
@@ -2272,7 +2278,7 @@ function setFilter(f) {
 }
 
 function setVerFilter(f) {
-  currentFilter = f;
+  currentVerifyFilter = f;
   // Update desktop sidebar active state
   document.querySelectorAll('[data-filter]').forEach(el => {
     el.classList.toggle('active', el.dataset.filter === f);
