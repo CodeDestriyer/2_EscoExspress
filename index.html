@@ -2528,10 +2528,12 @@ document.addEventListener('click', function(e) {
     e.stopPropagation();
     var wrap = selBtn.closest('.qe-dropdown-wrap');
     if (wrap) {
-      var wasOpen = wrap.classList.contains('open');
-      // Close any other open dropdowns first
-      _closeAllDropdowns();
-      if (!wasOpen) {
+      if (wrap.classList.contains('open')) {
+        // Toggle close — just fold, keep dropdown in DOM
+        wrap.classList.remove('open');
+      } else {
+        // Close any other open dropdowns first
+        _closeAllDropdowns();
         wrap.classList.add('open');
         _positionDropdownList(wrap);
         var cardDetails = wrap.closest('.card-details');
