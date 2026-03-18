@@ -2431,9 +2431,6 @@ function startInlineEdit(el, pkgId, col) {
     wrap.setAttribute('data-col', col);
     wrap.setAttribute('data-old', currentVal);
 
-    // Stop all clicks inside wrap from reaching parent .detail-block-value
-    wrap.addEventListener('click', function(e) { e.stopPropagation(); });
-
     // Trigger button
     const sel = document.createElement('div');
     sel.className = 'qe-dropdown-selected';
