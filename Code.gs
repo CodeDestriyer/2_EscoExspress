@@ -64,6 +64,7 @@ function doPost(e) {
 
       // CREATE
       case 'addPassenger':      result = apiAddPassenger(body); break;
+      case 'addParcel':         result = apiAddParcel(body); break;
 
       // UPDATE
       case 'updatePassengerField': result = apiUpdatePassengerField(body); break;
@@ -375,6 +376,42 @@ function apiAddPassenger(params) {
   sheet.appendRow(row);
 
   return { ok: true, pax_id: paxId, data: obj };
+}
+
+/**
+ * Додати нову посилку
+ * params: { sheet: 'Реєстрація ТТН УК-єв' | 'Реєстрація ТТН єв-УК', data: { field: value, ... } }
+ * data містить реальні назви колонок: Напрям, Піб відправника, Телефон реєстратора, etc.
+ */
+function apiAddParcel(params) {
+  var sheetName = params.sheet || 'Реєстрація ТТН УК-єв';
+  var ss = SpreadsheetApp.openById(CONFIG.SHEET_ID);
+  var sheet = ss.getSheetByName(sheetName);
+
+  if (!sheet) {
+    return { ok: false, error: 'Аркуш не знайдено: ' + sheetName };
+  }
+
+  var d = params.data || {};
+  var pkgId = genId('PKG');
+
+  // Зчитати заголовки з аркуша
+  var headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+
+  // Побудувати рядок відповідно до заголовків
+  var row = headers.map(function(col) {
+    if (col === 'PKG_ID') return pkgId;
+    if (col === 'Дата створення') return today();
+    if (col === 'Статус ліда') return 'Новий';
+    if (col === 'Статус CRM') return 'Активний';
+    if (col === 'Статус оплати') return d['Статус оплати'] || 'Не оплачено';
+    if (d[col] !== undefined && d[col] !== '') return d[col];
+    return '';
+  });
+
+  sheet.appendRow(row);
+
+  return { ok: true, pkg_id: pkgId };
 }
 
 /**

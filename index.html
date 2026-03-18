@@ -1559,9 +1559,13 @@ function mockApi(action, params) {
       return { ok: true, stats: { total: 6, ue: 4, eu: 2, byStatus: { 'Новий': 1, 'В роботі': 2, 'Підтверджено': 2, 'Відмова': 1 }, byPay: { 'Оплачено': 3, 'Частково': 2, 'Не оплачено': 1 }, totalDebt: 3900, totalSeats: 8 } };
     case 'addPassenger':
       return { ok: true, pax_id: 'PAX_NEW_' + Date.now() };
+    case 'addParcel':
+      return { ok: true, pkg_id: 'PKG_NEW_' + Date.now() };
     case 'updatePassengerField':
+    case 'updateField':
       return { ok: true };
     case 'deletePassenger':
+    case 'deleteParcel':
       return { ok: true };
     default:
       return { ok: true, data: [] };
@@ -2052,15 +2056,12 @@ function startVerification(pkgId) {
   item['Дата перевірки'] = new Date().toISOString();
   item['Статус ліда'] = 'В роботі';
   renderCards();
-  updateStats();
+  updateCounters();
   showToast('Переведено в перевірку', 'success');
 
   // Відправити на сервер
-  if (currentView === 'passengers') {
-    apiPost('setPassengerVerification', { pax_id: pkgId, status: 'В перевірці' });
-  } else {
-    apiPost('updateField', { pkg_id: pkgId, col: 'Контроль перевірки', value: 'В перевірці' });
-  }
+  apiPost('updateField', { pkg_id: pkgId, col: 'Контроль перевірки', value: 'В перевірці' });
+  apiPost('updateField', { pkg_id: pkgId, col: 'Статус ліда', value: 'В роботі' });
 }
 
 // Завершити перевірку — позначити як "Готово"
@@ -2078,15 +2079,12 @@ function completeVerification(pkgId) {
   item['Дата перевірки'] = new Date().toISOString();
   item['Статус ліда'] = 'Підтверджено';
   renderCards();
-  updateStats();
+  updateCounters();
   showToast('Перевірку завершено — готова до маршруту', 'success');
 
   // Відправити на сервер
-  if (currentView === 'passengers') {
-    apiPost('setPassengerVerification', { pax_id: pkgId, status: 'Готова до маршруту' });
-  } else {
-    apiPost('updateField', { pkg_id: pkgId, col: 'Контроль перевірки', value: 'Готова до маршруту' });
-  }
+  apiPost('updateField', { pkg_id: pkgId, col: 'Контроль перевірки', value: 'Готова до маршруту' });
+  apiPost('updateField', { pkg_id: pkgId, col: 'Статус ліда', value: 'Підтверджено' });
 }
 
 // Змінити статус перевірки (bulk)
@@ -2109,15 +2107,16 @@ function bulkSetVerifyStatus(status) {
   });
 
   renderCards();
-  updateStats();
+  updateCounters();
   showToast(`${ids.length} записів → "${status}"`, 'success');
 
   // Відправити на сервер
   ids.forEach(id => {
-    if (currentView === 'passengers') {
-      apiPost('setPassengerVerification', { pax_id: id, status: status });
-    } else {
-      apiPost('updateField', { pkg_id: id, col: 'Контроль перевірки', value: status });
+    apiPost('updateField', { pkg_id: id, col: 'Контроль перевірки', value: status });
+    if (status === 'В перевірці') {
+      apiPost('updateField', { pkg_id: id, col: 'Статус ліда', value: 'В роботі' });
+    } else if (status === 'Готова до маршруту') {
+      apiPost('updateField', { pkg_id: id, col: 'Статус ліда', value: 'Підтверджено' });
     }
   });
 
@@ -2568,15 +2567,15 @@ async function saveParcel() {
     }
 
     data = {
-      direction: 'ЄВ→УК',
-      pib: sender,
-      phone: phone,
-      addressFrom: addressFrom,
-      addressTo: addressTo,
-      receiver: receiver,
-      phoneReceiver: phoneReceiver,
-      weight: document.getElementById('fWeight').value || '',
-      estimatedValue: document.getElementById('fEstValue').value || ''
+      'Напрям': 'ЄВ→УК',
+      'Піб відправника': sender,
+      'Телефон реєстратора': phone,
+      'Адреса відправки': addressFrom,
+      'Піб отримувача': receiver,
+      'Телефон отримувача': phoneReceiver,
+      'Адреса в Європі': addressTo,
+      'Кг': document.getElementById('fWeight').value || '',
+      'Оціночна вартість': document.getElementById('fEstValue').value || ''
     };
   } else {
     // UA → EU
@@ -2594,19 +2593,18 @@ async function saveParcel() {
     }
 
     data = {
-      direction: 'УК→ЄВ',
-      pib: receiverUE,
-      phone: phoneReceiverUE,
-      addressFrom: '',
-      addressTo: addressTo,
-      ttn: document.getElementById('fTTN').value || '',
-      weight: document.getElementById('fWeightUE').value || '',
-      estimatedValue: document.getElementById('fEstValueUE').value || '',
-      description: document.getElementById('fDescription').value || '',
-      qty: document.getElementById('fQty').value || '1',
-      suma: document.getElementById('fSum').value || '',
-      currency: document.getElementById('fCurrency').value || 'UAH',
-      note: document.getElementById('fNote').value || ''
+      'Напрям': 'УК→ЄВ',
+      'Піб отримувача': receiverUE,
+      'Телефон отримувача': phoneReceiverUE,
+      'Адреса в Європі': addressTo,
+      'Номер ТТН': document.getElementById('fTTN').value || '',
+      'Кг': document.getElementById('fWeightUE').value || '',
+      'Оціночна вартість': document.getElementById('fEstValueUE').value || '',
+      'Опис': document.getElementById('fDescription').value || '',
+      'Кількість позицій': document.getElementById('fQty').value || '1',
+      'Сума': document.getElementById('fSum').value || '',
+      'Валюта оплати': document.getElementById('fCurrency').value || 'UAH',
+      'Примітка': document.getElementById('fNote').value || ''
     };
   }
 
@@ -2616,22 +2614,29 @@ async function saveParcel() {
   saveBtn.disabled = true;
 
   try {
-    const res = await apiPost('addPassenger', { data });
+    const sheetName = dir === 'eu' ? 'Реєстрація ТТН єв-УК' : 'Реєстрація ТТН УК-єв';
+    const res = await apiPost('addParcel', { sheet: sheetName, data });
 
     if (res.ok) {
-      // Add locally
+      // Add locally with correct frontend field names
       const newItem = {
-        'PKG_ID': res.pax_id || ('PKG_' + Date.now()),
-        'Напрям': data.direction,
-        'Піб відправника': data.pib,
-        'Телефон реєстратора': data.phone,
-        'Адреса відправки': data.addressFrom || '',
-        'Адреса в Європі': data.addressTo || '',
-        'Кг': data.weight || '',
-        'Сума': data.suma || '',
-        'Валюта оплати': data.currency || 'UAH',
-        'Завдаток': '0',
-        'Борг': data.suma || '0',
+        'PKG_ID': res.pkg_id || ('PKG_' + Date.now()),
+        'Напрям': data['Напрям'],
+        'Піб відправника': data['Піб відправника'] || '',
+        'Телефон реєстратора': data['Телефон реєстратора'] || '',
+        'Адреса відправки': data['Адреса відправки'] || '',
+        'Піб отримувача': data['Піб отримувача'] || '',
+        'Телефон отримувача': data['Телефон отримувача'] || '',
+        'Адреса в Європі': data['Адреса в Європі'] || '',
+        'Номер ТТН': data['Номер ТТН'] || '',
+        'Опис': data['Опис'] || '',
+        'Кількість позицій': data['Кількість позицій'] || '1',
+        'Кг': data['Кг'] || '',
+        'Оціночна вартість': data['Оціночна вартість'] || '',
+        'Сума': data['Сума'] || '',
+        'Валюта оплати': data['Валюта оплати'] || 'UAH',
+        'Завдаток': '',
+        'Борг': data['Сума'] || '0',
         'Статус оплати': 'Не оплачено',
         'Статус ліда': 'Новий',
         'Статус CRM': 'Активний',
@@ -2639,8 +2644,9 @@ async function saveParcel() {
         'Дата перевірки': '',
         'Номер авто': '',
         'RTE_ID': '',
-        'Примітка': data.note || '',
-        'Тип запису': 'Посилка'
+        'Примітка': data['Примітка'] || '',
+        'Тип запису': 'Посилка',
+        'Дата створення': new Date().toLocaleDateString('uk-UA')
       };
       allData.unshift(newItem);
       renderCards();
