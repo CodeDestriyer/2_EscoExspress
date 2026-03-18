@@ -1687,6 +1687,20 @@ let activeRouteIdx = null;
 let currentView = 'parcels';
 let selectedIds = new Set();
 let isLoading = false;
+let addFormDirection = 'ue';
+let deliveryType = 'np';
+
+const SWISS_POINTS = [
+  { city: 'Цюрих', addr: 'Parking Theater 11, Dorflistrasse 90, 8050 Zürich' },
+  { city: 'Цуг', addr: 'Bahnhofplatz, 6300 Zug' },
+  { city: 'Люцерн', addr: 'Tourist Bus Parking Landenberg, Alpenquai, 6005 Luzern' },
+  { city: 'Берн', addr: 'Parkplatz 7c, Beundenfeld, 3014 Bern' },
+  { city: 'Базель', addr: 'Basel Meret Oppenheim Strasse SBB Station, 4053 Basel' },
+  { city: 'Сен-Гален', addr: 'Bahnhofpl. 8b, 9000 St. Gallen' },
+  { city: 'Лозана', addr: 'Avenue du Grey 43, Lausanne' },
+  { city: 'Монтре', addr: 'Rte des Châtaigniers 7, 1816 Montreux' },
+  { city: 'Женева', addr: 'P+R Bout-du-Monde, Rte de Vessy 12, 1206 Genève' }
+];
 
 // ===== COLUMN CONFIGURATOR =====
 const ALL_CARD_COLUMNS = [
@@ -2368,7 +2382,7 @@ function switchTab(pkgId, tabName) {
 
 // ===== FIELD OPTIONS (dropdown lists) =====
 function getFieldOptions(col) {
-  const swissAddrs = (typeof SWISS_POINTS !== 'undefined') ? SWISS_POINTS.map(sp => `${sp.city} — ${sp.addr}`) : [];
+  const swissAddrs = SWISS_POINTS.map(sp => `${sp.city} — ${sp.addr}`);
   const opts = {
     'Статус ліда':      ['Новий', 'В роботі', 'Підтверджено', 'Відмова'],
     'Статус оплати':    ['Не оплачено', 'Частково', 'Оплачено'],
@@ -2877,21 +2891,6 @@ async function deleteRecord(pkgId) {
 function createRoute() { alert('Створення нового маршруту'); }
 
 // ===== ADD PARCEL FORM =====
-const SWISS_POINTS = [
-  { city: 'Цюрих', addr: 'Parking Theater 11, Dorflistrasse 90, 8050 Zürich' },
-  { city: 'Цуг', addr: 'Bahnhofplatz, 6300 Zug' },
-  { city: 'Люцерн', addr: 'Tourist Bus Parking Landenberg, Alpenquai, 6005 Luzern' },
-  { city: 'Берн', addr: 'Parkplatz 7c, Beundenfeld, 3014 Bern' },
-  { city: 'Базель', addr: 'Basel Meret Oppenheim Strasse SBB Station, 4053 Basel' },
-  { city: 'Сен-Гален', addr: 'Bahnhofpl. 8b, 9000 St. Gallen' },
-  { city: 'Лозана', addr: 'Avenue du Grey 43, Lausanne' },
-  { city: 'Монтре', addr: 'Rte des Châtaigniers 7, 1816 Montreux' },
-  { city: 'Женева', addr: 'P+R Bout-du-Monde, Rte de Vessy 12, 1206 Genève' }
-];
-
-let addFormDirection = 'ue';
-let deliveryType = 'np';
-
 function openAddForm() {
   addFormDirection = currentDirection;
   document.getElementById('fDirection').value = addFormDirection;
