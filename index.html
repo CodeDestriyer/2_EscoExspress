@@ -1381,6 +1381,18 @@ body {
       </div>
       <button style="width:100%;padding:8px;margin-top:4px;border:2px dashed var(--border);border-radius:8px;background:none;color:var(--info);font-family:inherit;font-size:12px;font-weight:600;cursor:pointer;" onclick="createRoute()">+ Новий маршрут</button>
     </div>
+
+    <!-- Archive Section -->
+    <div class="sidebar-section">
+      <div class="sidebar-section-header" onclick="toggleSection(this)">
+        🗄️ Архів <span class="toggle">▶</span>
+      </div>
+      <div class="sidebar-section-body" style="display:none;">
+        <div class="sidebar-item" onclick="toggleArchiveView()">
+          <span id="archiveToggleLabel">Показати архів</span> <span class="badge-count" id="countArchive">0</span>
+        </div>
+      </div>
+    </div>
   </aside>
   <button class="sidebar-toggle-btn" id="sidebarToggleBtn" onclick="toggleSidebar()" title="Згорнути/розгорнути меню">◀</button>
 
@@ -1677,13 +1689,40 @@ body {
 </style>
 
 <script>
-// ===== КОНФІГУРАЦІЯ =====
+// ╔══════════════════════════════════════════════════════════════╗
+// ║  EscoExpress CRM — Посилкова система                        ║
+// ║                                                              ║
+// ║  ЗМІСТ (Ctrl+F для навігації):                               ║
+// ║  [SECT-CONFIG]   — Конфігурація, URL, константи              ║
+// ║  [SECT-STATE]    — Глобальний стан (allData, filters)        ║
+// ║  [SECT-COLUMNS]  — Конфігуратор колонок картки               ║
+// ║  [SECT-API]      — API модуль (fetch → GAS)                  ║
+// ║  [SECT-TOAST]    — Toast-повідомлення                        ║
+// ║  [SECT-MOCK]     — Mock API (для тестування без GAS)         ║
+// ║  [SECT-INIT]     — Ініціалізація (DOMContentLoaded)          ║
+// ║  [SECT-FILTER]   — Фільтрація даних                          ║
+// ║  [SECT-RENDER]   — Рендер карток (renderCards, renderCard)   ║
+// ║  [SECT-DETAIL]   — Деталі картки (tabs, grid)               ║
+// ║  [SECT-INTERACT] — Взаємодії (toggle, inline edit, save)    ║
+// ║  [SECT-DROPDOWN] — Dropdown опції полів                      ║
+// ║  [SECT-BULK]     — Масові дії (bulk select/delete/route)    ║
+// ║  [SECT-VERIFY]   — Перевірка посилок (verification)         ║
+// ║  [SECT-SIDEBAR]  — Бокова панель + фільтри                  ║
+// ║  [SECT-COUNTERS] — Лічильники                                ║
+// ║  [SECT-ARCHIVE]  — Архів лідів (архівування/відновлення)    ║
+// ║  [SECT-ADDFORM]  — Форма створення посилки                  ║
+// ║  [SECT-SMS]      — SMS парсер                                ║
+// ║  [SECT-DUPL]     — Перевірка дублікатів                     ║
+// ║  [SECT-SAVE]     — Збереження посилки                       ║
+// ╚══════════════════════════════════════════════════════════════╝
+
+// ===== [SECT-CONFIG] КОНФІГУРАЦІЯ =====
 // GAS Web App URLs
 const GAS_URL_POSYLKI = 'https://script.google.com/macros/s/AKfycbylnzoNza_cDBiLw7Cz3wYru6htp3TLXbXP_FvoFWk2wizbC48D5HJmdP627Oujw4KUXg/exec';
 const GAS_URL = GAS_URL_POSYLKI;
 const USE_MOCK = false;
 
-// ===== GLOBAL STATE =====
+// ===== [SECT-STATE] GLOBAL STATE =====
 let allData = [];
 let filteredData = [];
 let currentDirection = 'ue';
@@ -1700,6 +1739,8 @@ let selectedIds = new Set();
 let isLoading = false;
 let addFormDirection = 'ue';
 let deliveryType = 'np';
+let showArchive = false;
+let archiveData = [];
 
 const SWISS_POINTS = [
   { city: 'Цюрих', addr: 'Parking Theater 11, Dorflistrasse 90, 8050 Zürich' },
@@ -1713,7 +1754,7 @@ const SWISS_POINTS = [
   { city: 'Женева', addr: 'P+R Bout-du-Monde, Rte de Vessy 12, 1206 Genève' }
 ];
 
-// ===== COLUMN CONFIGURATOR =====
+// ===== [SECT-COLUMNS] COLUMN CONFIGURATOR =====
 const ALL_CARD_COLUMNS = [
   { key: 'phone',       label: '📞 Телефон реєстратора' },
   { key: 'phoneRecv',   label: '📱 Телефон отримувача' },
@@ -1877,7 +1918,7 @@ function resetColCfg() {
   showToast('Скинуто до стандартних', 'info');
 }
 
-// ===== API MODULE =====
+// ===== [SECT-API] API MODULE =====
 async function apiPost(action, params = {}) {
   if (USE_MOCK) return mockApi(action, params);
 
@@ -1910,7 +1951,7 @@ async function apiPost(action, params = {}) {
   }
 }
 
-// ===== TOAST NOTIFICATIONS =====
+// ===== [SECT-TOAST] TOAST NOTIFICATIONS =====
 function showToast(message, type = 'info') {
   const toast = document.createElement('div');
   toast.style.cssText = `
@@ -1925,7 +1966,7 @@ function showToast(message, type = 'info') {
   setTimeout(() => { toast.style.opacity = '0'; setTimeout(() => toast.remove(), 300); }, 3000);
 }
 
-// ===== MOCK API (fallback коли нема GAS URL) =====
+// ===== [SECT-MOCK] MOCK API (fallback коли нема GAS URL) =====
 function mockApi(action, params) {
   // Маппінг GAS полів → фронтенд полів для пасажирів
   function gasToFrontend(pax) {
@@ -2049,12 +2090,12 @@ const MOCK_ROUTES = [
   { sheetName: 'Маршрут_Варшава', rowCount: 4, paxCount: 2, parcelCount: 2, rows: null }
 ];
 
-// ===== INIT =====
+// ===== [SECT-INIT] INIT =====
 document.addEventListener('DOMContentLoaded', async function() {
   await loadData();
 });
 
-// ===== FILTERING =====
+// ===== [SECT-FILTER] FILTERING =====
 function filterData() {
   let data = allData.filter(p => p['Статус CRM'] !== 'Архів');
 
@@ -2100,9 +2141,11 @@ function filterData() {
   return data;
 }
 
-// ===== RENDER CARDS =====
+// ===== [SECT-RENDER] RENDER CARDS =====
 function renderCards() {
   try {
+    // If archive mode is on, render archive cards instead
+    if (showArchive) { renderArchiveCards(); return; }
     const data = filterData();
     const container = document.getElementById('cardsList');
     if (!container) { console.error('cardsList not found'); return; }
@@ -2122,7 +2165,7 @@ function renderCards() {
   }
 }
 
-// ===== DETAIL BLOCK RENDERER =====
+// ===== [SECT-DETAIL] DETAIL BLOCK RENDERER =====
 function renderDetailBlock(label, value, pkgId, opts = {}) {
   const v = (value !== undefined && value !== null) ? String(value).trim() : '';
   const isFilled = v && v !== '—' && v !== '0';
@@ -2146,7 +2189,7 @@ function renderDetailGrid(fields, pkgId, opts = {}) {
   return `<div class="details-grid">${fields.map(f => renderDetailBlock(f[0], f[1], pkgId, Object.assign({}, opts, f[2] || {}))).join('')}</div>`;
 }
 
-// ===== RENDER CARD =====
+// ===== [SECT-CARD] RENDER SINGLE CARD =====
 function renderCard(p) {
   const pkgId = p['PKG_ID'] || '';
   const name = p['Піб відправника'] || '';
@@ -2346,6 +2389,7 @@ function renderCard(p) {
         ${controlCheck === 'В перевірці' ? `<button onclick="event.stopPropagation(); completeVerification('${pkgId}')" style="background:var(--success);color:#fff;">✅ Готово</button>` : ''}
         ${controlCheck === 'Готова до маршруту' ? `<span style="display:inline-flex;align-items:center;padding:6px 12px;background:#dcfce7;color:#166534;border-radius:8px;font-size:12px;font-weight:600;">✅ Готова</span>` : ''}
         <button onclick="event.stopPropagation(); openRouteModal('${pkgId}')">🚖 Маршрут</button>
+        ${leadStatus !== 'Невідомий' ? `<button onclick="event.stopPropagation(); setLeadUnknown('${pkgId}')" style="background:#fef3c7;color:#92400e;">❓ Невідомий</button>` : `<span style="display:inline-flex;align-items:center;padding:6px 12px;background:#fef3c7;color:#92400e;border-radius:8px;font-size:12px;font-weight:600;">❓ Невідомий</span>`}
         <button class="btn-danger" onclick="event.stopPropagation(); deleteRecord('${pkgId}')">🗑️</button>
       </div>
       <div class="card-details ${isOpen ? 'open' : ''}" id="details-${pkgId}">
@@ -2368,7 +2412,7 @@ function renderCard(p) {
   `;
 }
 
-// ===== INTERACTIONS =====
+// ===== [SECT-INTERACT] INTERACTIONS (toggle, inline edit, save) =====
 function toggleCard(pkgId) {
   openCardId = openCardId === pkgId ? null : pkgId;
   document.querySelectorAll('.card-details').forEach(el => {
@@ -2391,7 +2435,7 @@ function switchTab(pkgId, tabName) {
   card.querySelectorAll('.detail-tab-panel').forEach(p => p.classList.toggle('active', p.dataset.tabPanel === tabName));
 }
 
-// ===== FIELD OPTIONS (dropdown lists) =====
+// ===== [SECT-DROPDOWN] FIELD OPTIONS (dropdown lists) =====
 function getFieldOptions(col) {
   const swissAddrs = SWISS_POINTS.map(sp => `${sp.city} — ${sp.addr}`);
   const opts = {
@@ -2656,7 +2700,7 @@ function toggleSelect(pkgId) {
   if (card) card.classList.toggle('selected', selectedIds.has(pkgId));
 }
 
-// ===== BULK ACTION MENU =====
+// ===== [SECT-BULK] BULK ACTION MENU =====
 let sidebarWasCollapsedBeforeBulk = false;
 
 function updateBulkMenu() {
@@ -2719,24 +2763,33 @@ function afterBulkAction() {
 }
 
 // Stub: Видалити
-function bulkDelete() {
+// Масове видалення (= архівування)
+async function bulkDelete() {
   const ids = getSelectedIds();
   if (ids.length === 0) return;
-  if (!confirm(`Видалити ${ids.length} посилок? Цю дію неможливо скасувати.`)) return;
-  console.log('bulkDelete:', ids);
-  showToast(`Видалення ${ids.length} посилок (заглушка)`, 'info');
+  const reason = prompt('Причина архівування ' + ids.length + ' посилок (або залиште порожнім):', '');
+  if (reason === null) return;
+  // Оновити локально
+  ids.forEach(function(pkgId) {
+    var item = allData.find(function(p) { return p['PKG_ID'] === pkgId; });
+    if (item) item['Статус CRM'] = 'Архів';
+  });
+  renderCards();
+  updateCounters();
+  // Відправити на сервер
+  for (var i = 0; i < ids.length; i++) {
+    await apiPost('deleteParcel', { pkg_id: ids[i], reason: reason, archived_by: 'CRM' });
+  }
+  showToast('Архівовано ' + ids.length + ' посилок', 'success');
   afterBulkAction();
 }
 
-// Stub: Архівувати
-function bulkArchive() {
-  const ids = getSelectedIds();
-  if (ids.length === 0) return;
-  if (!confirm(`Архівувати ${ids.length} посилок?`)) return;
-  console.log('bulkArchive:', ids);
-  showToast(`Архівування ${ids.length} посилок (заглушка)`, 'info');
-  afterBulkAction();
+// Масове архівування (аліас bulkDelete)
+async function bulkArchive() {
+  return bulkDelete();
 }
+
+// ===== [SECT-VERIFY] VERIFICATION (перевірка посилок) =====
 
 // Перевести лід в перевірку
 function startVerification(pkgId) {
@@ -2783,6 +2836,21 @@ function completeVerification(pkgId) {
   // Відправити на сервер
   apiPost('updateField', { pkg_id: pkgId, col: 'Контроль перевірки', value: 'Готова до маршруту' });
   apiPost('updateField', { pkg_id: pkgId, col: 'Статус ліда', value: 'Підтверджено' });
+}
+
+// Призначити статус "Невідомий" ліду
+function setLeadUnknown(pkgId) {
+  const item = allData.find(p => p['PKG_ID'] === pkgId);
+  if (!item) return;
+  if (item['Статус ліда'] === 'Невідомий') {
+    showToast('Вже невідомий', 'info');
+    return;
+  }
+  item['Статус ліда'] = 'Невідомий';
+  renderCards();
+  updateCounters();
+  showToast('Статус: Невідомий', 'success');
+  apiPost('updateField', { pkg_id: pkgId, col: 'Статус ліда', value: 'Невідомий' });
 }
 
 // Змінити статус перевірки (bulk)
@@ -2888,7 +2956,7 @@ function onSearch(value) {
   renderCards();
 }
 
-// ===== SIDEBAR =====
+// ===== [SECT-SIDEBAR] SIDEBAR =====
 function toggleSection(header) {
   const body = header.nextElementSibling;
   const toggle = header.querySelector('.toggle');
@@ -2924,7 +2992,7 @@ function closeMobileSidebar() {
   document.getElementById('sidebarOverlay').classList.remove('open');
 }
 
-// ===== ROUTES SIDEBAR =====
+// ===== [SECT-ROUTES] ROUTES SIDEBAR =====
 function renderRouteSidebar() {
   const container = document.getElementById('routesSidebar');
   container.innerHTML = routes.map((r, i) => `
@@ -2940,7 +3008,7 @@ function selectRoute(idx) {
   renderRouteSidebar();
 }
 
-// ===== COUNTERS =====
+// ===== [SECT-COUNTERS] COUNTERS =====
 function updateCounters() {
   try {
     const active = allData.filter(p => p['Статус CRM'] !== 'Архів');
@@ -2959,7 +3027,7 @@ function updateCounters() {
   } catch(e) { console.error('updateCounters error:', e); }
 }
 
-// ===== PLACEHOLDER FUNCTIONS =====
+// ===== [SECT-STUBS] PLACEHOLDER FUNCTIONS =====
 function setFilter(f) {
   currentVerifyFilter = f;
   // Update mobile sidebar active state
@@ -3004,20 +3072,128 @@ function openMessenger(phone) {
 
 function openRouteModal(pkgId) { alert('Вибір маршруту для ' + pkgId); }
 
+// ===== [SECT-ARCHIVE] ARCHIVE SYSTEM =====
+
+// Архівувати посилку з причиною
 async function deleteRecord(pkgId) {
-  if (!confirm('Видалити запис ' + pkgId + '?')) return;
+  const reason = prompt('Причина архівування (або залиште порожнім):', '');
+  if (reason === null) return; // Натиснув Cancel
 
   const item = allData.find(p => p['PKG_ID'] === pkgId);
-  if (item) item['Статус CRM'] = 'Архів';
+  if (item) {
+    item['Статус CRM'] = 'Архів';
+    item['DATE_ARCHIVE'] = new Date().toISOString();
+    item['ARCHIVE_REASON'] = reason;
+  }
   renderCards();
+  updateCounters();
 
-  const res = await apiPost('deleteParcel', { pkg_id: pkgId });
-  if (res.ok) showToast('Запис архівовано', 'success');
+  const res = await apiPost('deleteParcel', { pkg_id: pkgId, reason: reason, archived_by: 'CRM' });
+  if (res.ok) showToast('Архівовано', 'success');
+}
+
+// Перемкнути вид Архів / Активні
+async function toggleArchiveView() {
+  showArchive = !showArchive;
+  const label = document.getElementById('archiveToggleLabel');
+  if (label) label.textContent = showArchive ? 'Сховати архів' : 'Показати архів';
+
+  if (showArchive) {
+    showToast('Завантаження архіву...', 'info');
+    const dir = currentDirection === 'ue' ? 'ue' : 'eu';
+    const res = await apiPost('getArchive', { direction: dir });
+    if (res.ok) {
+      archiveData = res.data || [];
+      document.getElementById('countArchive').textContent = archiveData.length;
+      renderArchiveCards();
+    } else {
+      showToast('Помилка завантаження архіву', 'error');
+      showArchive = false;
+      if (label) label.textContent = 'Показати архів';
+    }
+  } else {
+    archiveData = [];
+    renderCards();
+  }
+}
+
+// Рендер архівних карток
+function renderArchiveCards() {
+  const container = document.getElementById('cardsList');
+  if (!container) return;
+
+  if (archiveData.length === 0) {
+    container.innerHTML = '<div class="empty-state">🗄️ Архів порожній</div>';
+    return;
+  }
+
+  container.innerHTML = '<div style="padding:8px 12px;background:#fef3c7;border-radius:8px;margin-bottom:8px;font-size:13px;font-weight:600;color:#92400e;">🗄️ Режим архіву — ' + archiveData.length + ' записів</div>' +
+    archiveData.map(function(p) { return renderArchiveCard(p); }).join('');
+}
+
+// Одна архівна картка
+function renderArchiveCard(p) {
+  var pkgId = p['PKG_ID'] || '';
+  var name = p['Піб відправника'] || '—';
+  var receiver = p['Піб отримувача'] || '—';
+  var direction = p['Напрям'] || '';
+  var isUE = direction === 'УК→ЄВ';
+  var dirLabel = isUE ? 'УК→ЄВ' : 'ЄВ→УК';
+  var dirClass = isUE ? 'dir-badge-ua-eu' : 'dir-badge-eu-ua';
+  var price = p['Сума'] || '';
+  var currency = p['Валюта оплати'] || '';
+  var dateArchive = p['DATE_ARCHIVE'] || '';
+  var reason = p['ARCHIVE_REASON'] || '';
+  var archivedBy = p['ARCHIVED_BY'] || '';
+
+  return '<div class="lead-card" data-id="' + pkgId + '" style="opacity:0.7;border-left:4px solid #94a3b8;">' +
+    '<div class="card-header">' +
+      '<div class="card-top-row">' +
+        '<span class="dir-badge ' + dirClass + '">' + dirLabel + '</span>' +
+        '<div class="card-finance">' +
+          (price ? '<span class="card-price" style="color:#94a3b8;">' + price + ' ' + currency + '</span>' : '') +
+        '</div>' +
+      '</div>' +
+      '<div class="card-row2-wrap">' +
+        '<div class="card-row2">' +
+          '<span class="card-pkgid">' + pkgId + '</span>' +
+          '<span class="card-sender-recv">👤 ' + name + ' → ' + receiver + '</span>' +
+          '<span class="badge" style="background:#fee2e2;color:#991b1b;">Архів</span>' +
+        '</div>' +
+        '<div class="card-meta-tags">' +
+          (dateArchive ? '<span class="meta-tag">📅 ' + dateArchive + '</span>' : '') +
+          (reason ? '<span class="meta-tag">📝 ' + reason + '</span>' : '') +
+          (archivedBy ? '<span class="meta-tag">👤 ' + archivedBy + '</span>' : '') +
+        '</div>' +
+      '</div>' +
+    '</div>' +
+    '<div class="card-actions" style="display:flex;padding:8px 12px;gap:8px;">' +
+      '<button onclick="event.stopPropagation(); restoreFromArchive(\'' + pkgId + '\')" style="background:var(--success);color:#fff;">♻️ Відновити</button>' +
+    '</div>' +
+  '</div>';
+}
+
+// Відновити з архіву
+async function restoreFromArchive(pkgId) {
+  if (!confirm('Відновити посилку ' + pkgId + ' з архіву?')) return;
+
+  const res = await apiPost('restoreFromArchive', { pkg_id: pkgId });
+  if (res.ok) {
+    // Видалити з архівних даних
+    archiveData = archiveData.filter(function(p) { return p['PKG_ID'] !== pkgId; });
+    document.getElementById('countArchive').textContent = archiveData.length;
+    renderArchiveCards();
+    showToast('Відновлено з архіву', 'success');
+    // Перезавантажити основні дані
+    loadData();
+  } else {
+    showToast('Помилка відновлення', 'error');
+  }
 }
 
 function createRoute() { alert('Створення нового маршруту'); }
 
-// ===== ADD PARCEL FORM =====
+// ===== [SECT-ADDFORM] ADD PARCEL FORM =====
 function openAddForm() {
   addFormDirection = currentDirection;
   document.getElementById('fDirection').value = addFormDirection;
@@ -3123,7 +3299,7 @@ function setDeliveryType(type) {
   document.getElementById('fAddrBlock').style.display = type === 'address' ? '' : 'none';
 }
 
-// ===== SMS PARSER =====
+// ===== [SECT-SMS] SMS PARSER =====
 function parseSmsText() {
   const text = document.getElementById('fSmsText').value.trim();
   if (!text) { showToast('Вставте текст для розпізнавання', 'info'); return; }
@@ -3188,7 +3364,7 @@ function parseSmsText() {
   showToast(`Розпізнано: ${filled.length} полів`, 'success');
 }
 
-// ===== DUPLICATE CHECK =====
+// ===== [SECT-DUPL] DUPLICATE CHECK =====
 function checkDuplicatePhone(phone) {
   if (!phone || phone.length < 8) {
     document.getElementById('duplicateWarning').classList.remove('visible');
@@ -3208,7 +3384,7 @@ function checkDuplicatePhone(phone) {
   }
 }
 
-// ===== SAVE PARCEL =====
+// ===== [SECT-SAVE] SAVE PARCEL =====
 async function saveParcel() {
   const dir = addFormDirection;
   let errors = [];

@@ -137,8 +137,10 @@ function doPost(e) {
       case 'updateField':             result = apiUpdateField(body); break;
       case 'checkDuplicates':         result = apiCheckDuplicates(body); break;
 
-      // ── DELETE ──
+      // ── DELETE / ARCHIVE ──
       case 'deleteParcel':            result = apiDeleteParcel(body); break;
+      case 'getArchive':              result = apiGetArchive(body); break;
+      case 'restoreFromArchive':      result = apiRestoreFromArchive(body); break;
 
       // ── VERIFICATION ──
       case 'scanTTN':                 result = apiScanTTN(body); break;
@@ -732,6 +734,71 @@ function apiDeleteParcel(params) {
     var idx = found.headers.indexOf(col);
     if (idx !== -1) {
       found.sheet.getRange(found.rowNum, idx + 1).setValue(updates[col]);
+    }
+  }
+
+  return { ok: true, pkg_id: params.pkg_id };
+}
+
+// ============================================================
+// ARCHIVE ENDPOINTS
+// ============================================================
+
+/**
+ * apiGetArchive — отримати всі архівні посилки
+ * params: { direction: 'all'|'ue'|'eu' }
+ */
+function apiGetArchive(params) {
+  var result = [];
+  var direction = params.direction || 'all';
+
+  function collectArchived(sheet, shName) {
+    var data = sheet.getDataRange().getValues();
+    if (data.length < 2) return;
+    var headers = normalizeHeaders(data[0]);
+    for (var i = 1; i < data.length; i++) {
+      var obj = {};
+      for (var j = 0; j < headers.length; j++) {
+        obj[headers[j]] = data[i][j] !== undefined ? String(data[i][j]) : '';
+      }
+      if (!obj['PKG_ID'] && !obj['Піб відправника']) continue;
+      if (obj['Статус CRM'] !== 'Архів') continue;
+      // Direction filter
+      if (direction === 'ue' && obj['Напрям'] !== 'УК→ЄВ') continue;
+      if (direction === 'eu' && obj['Напрям'] !== 'ЄВ→УК') continue;
+      obj['_sheet'] = shName;
+      result.push(obj);
+    }
+  }
+
+  if (direction !== 'eu') collectArchived(getUeSheet(), 'Реєстрація ТТН УК-єв');
+  if (direction !== 'ue') collectArchived(getEuSheet(), 'Виклик Курєра ЄВ-ук');
+
+  return { ok: true, data: result };
+}
+
+/**
+ * apiRestoreFromArchive — відновити посилку з архіву
+ * params: { pkg_id }
+ */
+function apiRestoreFromArchive(params) {
+  var found = findPkgInBoth(params.pkg_id);
+  if (!found) {
+    return { ok: false, error: 'Посилку не знайдено: ' + params.pkg_id };
+  }
+
+  var clearCols = {
+    'Статус CRM': 'Активний',
+    'DATE_ARCHIVE': '',
+    'ARCHIVED_BY': '',
+    'ARCHIVE_REASON': '',
+    'ARCHIVE_ID': ''
+  };
+
+  for (var col in clearCols) {
+    var idx = found.headers.indexOf(col);
+    if (idx !== -1) {
+      found.sheet.getRange(found.rowNum, idx + 1).setValue(clearCols[col]);
     }
   }
 
