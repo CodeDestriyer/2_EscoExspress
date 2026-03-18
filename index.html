@@ -2238,7 +2238,7 @@ function renderCard(p) {
     'ttn': ['Номер ТТН', ttn],
     'innerNum': ['Внутрішній №', p['Внутрішній №'] || ''],
     'statusPkg': ['Статус посилки', statusPkg],
-    'sum': ['Сума', price ? price + ' ' + currency : ''],
+    'sum': ['Сума', price],
     'currency': ['Валюта оплати', currency],
     'payStatus': ['Статус оплати', payStatus],
     'photo': ['Фото посилки', p['Фото посилки'] || ''],
@@ -2542,31 +2542,100 @@ function _positionDropdownList(wrap) {
 
 function saveInlineEdit(pkgId, col, value, el) {
   const item = allData.find(p => p['PKG_ID'] === pkgId);
+  var oldVal = item ? item[col] : undefined;
   if (item) item[col] = value;
-
-  // Re-render entire card so header (price, currency, badges, meta) updates too
-  const wasOpen = openCardId === pkgId;
-  const activeTab = (() => {
-    const card = document.querySelector(`.lead-card[data-id="${pkgId}"]`);
-    if (!card) return 'parcel';
-    const active = card.querySelector('.detail-tab.active');
-    return active ? active.dataset.tab : 'parcel';
-  })();
-
-  // Keep card open after re-render
-  if (wasOpen) openCardId = pkgId;
-  renderCards();
-
-  // Restore active tab
-  if (wasOpen) {
-    switchTab(pkgId, activeTab);
-  }
-
+  restoreBlock(el, value, pkgId, col);
+  // Mark block as changed while saving
+  const block = el.closest('.detail-block');
+  if (block) block.className = 'detail-block changed';
+  // Instantly patch card header (no full re-render)
+  updateCardHeader(pkgId);
   apiPost('updateField', { pkg_id: pkgId, col, value }).then(res => {
     if (res.ok) {
       showToast('Збережено', 'success');
+      if (block) block.className = 'detail-block ' + (value ? 'filled' : 'empty');
+    } else {
+      // Revert on error
+      if (item) item[col] = oldVal;
+      updateCardHeader(pkgId);
+      restoreBlock(el, oldVal, pkgId, col);
+      showToast('Помилка збереження', 'error');
     }
   });
+}
+
+// Targeted DOM patch — updates card header without re-rendering entire card list
+function updateCardHeader(pkgId) {
+  var p = allData.find(function(x) { return x['PKG_ID'] === pkgId; });
+  if (!p) return;
+  var cardEl = document.querySelector('.lead-card[data-id="' + pkgId + '"]');
+  if (!cardEl) return;
+  var visCols = getVisibleCardColumns();
+
+  // 1. Finance: price + currency + deposit + debt
+  var financeEl = cardEl.querySelector('.card-finance');
+  if (financeEl) {
+    var price = p['Сума'] || '';
+    var currency = p['Валюта оплати'] || '';
+    var deposit = parseFloat(p['Завдаток']) || 0;
+    var debt = parseFloat(p['Борг']) || 0;
+    var payStatus = p['Статус оплати'] || '';
+    var priceColorClass = payStatus === 'Оплачено' ? 'paid' : (payStatus === 'Частково' ? 'partial' : 'unpaid');
+    var html = '';
+    if (visCols.includes('sum') && price) html += '<span class="card-price ' + priceColorClass + '">' + price + ' ' + currency + '</span>';
+    if (visCols.includes('deposit') && deposit > 0) html += '<span class="card-deposit">завд:' + deposit + '</span>';
+    if (visCols.includes('debt') && debt > 0) html += '<span class="card-debt">борг:' + debt + '</span>';
+    financeEl.innerHTML = html;
+  }
+
+  // 2. Sender → Receiver name
+  var nameEl = cardEl.querySelector('.card-sender-recv');
+  if (nameEl) {
+    var sender = p['Піб відправника'] || '—';
+    var receiver = p['Піб отримувача'] || '—';
+    nameEl.innerHTML = '👤 ' + sender + ' → ' + receiver;
+  }
+
+  // 3. Weight badge
+  var weightBadge = cardEl.querySelector('.badge-weight');
+  var weight = p['Кг'] || '';
+  if (visCols.includes('weight')) {
+    if (weight) {
+      if (weightBadge) {
+        weightBadge.innerHTML = '⚖️ ' + weight + ' кг';
+      } else {
+        // Insert before card-finance
+        if (financeEl) financeEl.insertAdjacentHTML('beforebegin', '<span class="badge-weight">⚖️ ' + weight + ' кг</span>');
+      }
+    } else if (weightBadge) {
+      weightBadge.remove();
+    }
+  }
+
+  // 4. Pay status badge
+  var badgesRow = cardEl.querySelector('.card-row2');
+  if (badgesRow && visCols.includes('payBadge')) {
+    var payStatus2 = p['Статус оплати'] || '';
+    var payBadgeMap = { 'Оплачено': 'badge-paid', 'Частково': 'badge-partial', 'Не оплачено': 'badge-unpaid' };
+    var oldPayBadge = badgesRow.querySelector('.badge-paid, .badge-partial, .badge-unpaid');
+    if (payStatus2) {
+      var newBadgeHtml = '<span class="badge ' + (payBadgeMap[payStatus2] || '') + '">' + payStatus2 + '</span>';
+      if (oldPayBadge) oldPayBadge.outerHTML = newBadgeHtml;
+    } else if (oldPayBadge) {
+      oldPayBadge.remove();
+    }
+  }
+
+  // 5. Address
+  var addressEl = cardEl.querySelector('.card-address');
+  if (visCols.includes('address')) {
+    var addrFrom = p['Адреса відправки'] || '';
+    var addrTo = p['Адреса в Європі'] || p['Місто Нова Пошта'] || '';
+    if (addressEl) {
+      if (addrTo) addressEl.innerHTML = '📍 ' + (addrFrom ? addrFrom + ' → ' : '') + addrTo;
+      else addressEl.remove();
+    }
+  }
 }
 
 function restoreBlock(el, value, pkgId, col) {
