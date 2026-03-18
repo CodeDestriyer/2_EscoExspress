@@ -2414,7 +2414,9 @@ function getFieldOptions(col) {
 }
 
 function startInlineEdit(el, pkgId, col) {
-  if (el.querySelector('input') || el.querySelector('.qe-dropdown-wrap')) return;
+  // If dropdown already exists — do nothing (delegated handler manages it)
+  if (el.querySelector('.qe-dropdown-wrap') || el.querySelector('input')) return;
+
   const valEl = el.querySelector('.val-text, .val-empty');
   const currentVal = valEl && valEl.classList.contains('val-text') ? valEl.textContent.trim() : '';
   const options = getFieldOptions(col);
@@ -2422,24 +2424,27 @@ function startInlineEdit(el, pkgId, col) {
   el.innerHTML = '';
 
   if (options) {
-    // === QE DROPDOWN: position:fixed, floats over everything ===
+    // === QE DROPDOWN: position:fixed, floats over cards ===
     const wrap = document.createElement('div');
-    wrap.className = 'qe-dropdown-wrap';
+    wrap.className = 'qe-dropdown-wrap open';
     wrap.setAttribute('data-pkg', pkgId);
     wrap.setAttribute('data-col', col);
     wrap.setAttribute('data-old', currentVal);
 
-    // Selected trigger
+    // Stop all clicks inside wrap from reaching parent .detail-block-value
+    wrap.addEventListener('click', function(e) { e.stopPropagation(); });
+
+    // Trigger button
     const sel = document.createElement('div');
     sel.className = 'qe-dropdown-selected';
     sel.textContent = currentVal || '— Оберіть —';
     wrap.appendChild(sel);
 
-    // Dropdown list
+    // List
     const list = document.createElement('div');
     list.className = 'qe-dropdown-list';
 
-    // Clear/empty option
+    // "Clear" option
     const clearItem = document.createElement('div');
     clearItem.className = 'qe-dropdown-item qe-dropdown-item-clear';
     clearItem.setAttribute('data-val', '');
@@ -2449,28 +2454,26 @@ function startInlineEdit(el, pkgId, col) {
     options.forEach(function(opt) {
       if (opt === '') return;
       const item = document.createElement('div');
-      const isActive = opt === currentVal;
-      item.className = 'qe-dropdown-item' + (isActive ? ' active' : '');
+      item.className = 'qe-dropdown-item' + (opt === currentVal ? ' active' : '');
       item.setAttribute('data-val', opt);
-      item.innerHTML = '<span class="dd-icon">' + (isActive ? '✓' : '') + '</span> ' + opt;
+      item.innerHTML = '<span class="dd-icon">' + (opt === currentVal ? '✓' : '') + '</span> ' + opt;
       list.appendChild(item);
     });
 
     wrap.appendChild(list);
     el.appendChild(wrap);
 
-    // Add editing-active class to parent containers for overflow:visible
+    // Overflow fix on parents
     const cardDetails = el.closest('.card-details');
     const tabPanel = el.closest('.detail-tab-panel');
     if (cardDetails) cardDetails.classList.add('editing-active');
     if (tabPanel) tabPanel.classList.add('editing-active');
 
-    // Open immediately + position
-    wrap.classList.add('open');
+    // Position fixed list
     _positionDropdownList(wrap);
 
   } else {
-    // Text input
+    // Text input for non-dropdown fields
     const input = document.createElement('input');
     input.type = 'text';
     input.value = currentVal;
@@ -2484,7 +2487,7 @@ function startInlineEdit(el, pkgId, col) {
   }
 }
 
-// Position the fixed dropdown list right below the trigger
+// Position the fixed list below the trigger
 function _positionDropdownList(wrap) {
   var sel = wrap.querySelector('.qe-dropdown-selected');
   var list = wrap.querySelector('.qe-dropdown-list');
@@ -2495,79 +2498,68 @@ function _positionDropdownList(wrap) {
   list.style.width = Math.max(rect.width, 180) + 'px';
 }
 
-// Close all open dropdowns + cleanup
-function _closeAllDropdowns(saveValue) {
-  document.querySelectorAll('.qe-dropdown-wrap.open').forEach(function(wrap) {
-    var pkgId = wrap.getAttribute('data-pkg');
-    var col = wrap.getAttribute('data-col');
-    var oldVal = wrap.getAttribute('data-old');
-    var el = wrap.closest('.detail-block-value');
-
-    wrap.classList.remove('open');
-
-    // Remove editing-active
-    document.querySelectorAll('.editing-active').forEach(function(e) {
-      e.classList.remove('editing-active');
-    });
-
-    if (el) {
-      if (saveValue !== undefined && saveValue !== null) {
-        saveInlineEdit(pkgId, col, saveValue, el);
-      } else {
-        restoreBlock(el, oldVal, pkgId, col);
-      }
-    }
-  });
+// Close a specific dropdown (restore old value)
+function _closeDropdown(wrap) {
+  if (!wrap) return;
+  var pkgId = wrap.getAttribute('data-pkg');
+  var col = wrap.getAttribute('data-col');
+  var oldVal = wrap.getAttribute('data-old');
+  var el = wrap.closest('.detail-block-value');
+  document.querySelectorAll('.editing-active').forEach(function(e) { e.classList.remove('editing-active'); });
+  if (el) restoreBlock(el, oldVal, pkgId, col);
 }
 
-// === DELEGATED EVENT HANDLERS (one-time setup) ===
-// Click on .qe-dropdown-selected → toggle
+// Save a specific dropdown (commit chosen value)
+function _saveDropdown(wrap, val) {
+  if (!wrap) return;
+  var pkgId = wrap.getAttribute('data-pkg');
+  var col = wrap.getAttribute('data-col');
+  var el = wrap.closest('.detail-block-value');
+  document.querySelectorAll('.editing-active').forEach(function(e) { e.classList.remove('editing-active'); });
+  if (el) saveInlineEdit(pkgId, col, val, el);
+}
+
+// === DELEGATED HANDLERS (once on document) ===
 document.addEventListener('click', function(e) {
+  // 1. Click on trigger → toggle open/close
   var selBtn = e.target.closest('.qe-dropdown-selected');
   if (selBtn) {
-    e.stopPropagation();
     var wrap = selBtn.closest('.qe-dropdown-wrap');
-    if (wrap) {
-      if (wrap.classList.contains('open')) {
-        // Toggle close — just fold, keep dropdown in DOM
-        wrap.classList.remove('open');
-      } else {
-        // Close any other open dropdowns first
-        _closeAllDropdowns();
-        wrap.classList.add('open');
-        _positionDropdownList(wrap);
-        var cardDetails = wrap.closest('.card-details');
-        var tabPanel = wrap.closest('.detail-tab-panel');
-        if (cardDetails) cardDetails.classList.add('editing-active');
-        if (tabPanel) tabPanel.classList.add('editing-active');
-      }
+    if (!wrap) return;
+    if (wrap.classList.contains('open')) {
+      // Collapse — just toggle class, keep dropdown alive
+      wrap.classList.remove('open');
+    } else {
+      wrap.classList.add('open');
+      _positionDropdownList(wrap);
     }
     return;
   }
 
-  // Click on .qe-dropdown-item → save value
+  // 2. Click on item → save and destroy
   var item = e.target.closest('.qe-dropdown-item');
   if (item) {
-    e.stopPropagation();
+    var wrap = item.closest('.qe-dropdown-wrap');
     var val = item.getAttribute('data-val');
-    _closeAllDropdowns(val);
+    _saveDropdown(wrap, val);
     return;
   }
 
-  // Click outside → close without saving
-  if (!e.target.closest('.qe-dropdown-wrap')) {
-    _closeAllDropdowns();
-  }
+  // 3. Click outside any dropdown → close all open ones
+  var anyOpen = document.querySelectorAll('.qe-dropdown-wrap.open');
+  anyOpen.forEach(function(wrap) {
+    if (!wrap.contains(e.target)) {
+      _closeDropdown(wrap);
+    }
+  });
 });
 
-// Escape → close without saving
 document.addEventListener('keydown', function(e) {
   if (e.key === 'Escape') {
-    _closeAllDropdowns();
+    document.querySelectorAll('.qe-dropdown-wrap.open').forEach(_closeDropdown);
   }
 });
 
-// Reposition on scroll
 window.addEventListener('scroll', function() {
   document.querySelectorAll('.qe-dropdown-wrap.open').forEach(_positionDropdownList);
 }, true);
