@@ -323,6 +323,7 @@ body {
 .lead-card.status-confirmed { border-left-color: var(--success); }
 .lead-card.status-refused   { border-left-color: var(--danger); }
 .lead-card.status-unknown   { border-left-color: var(--danger); background: #fef2f2; }
+.lead-card.status-checking  { border-left-color: #6366f1; background: #eef2ff; }
 
 /* Card Header — always visible */
 .card-header { cursor: pointer; }
@@ -1111,7 +1112,8 @@ function mockApi(action, params) {
       'RTE_ID': pax['RTE_ID'] || '',
       'Примітка': pax['Примітка'] || '',
       'Місця': pax['Кількість місць'] || pax['Місця'] || '1',
-      'Контроль перевірки': ''
+      'Контроль перевірки': pax['Контроль перевірки'] || '',
+      'Дата перевірки': pax['Дата перевірки'] || ''
     };
   }
 
@@ -1327,7 +1329,8 @@ function renderCard(p) {
 
   // Status class
   let statusClass = '';
-  if (leadStatus === 'Новий') statusClass = 'status-new';
+  if (controlCheck === 'В перевірці') statusClass = 'status-checking';
+  else if (leadStatus === 'Новий') statusClass = 'status-new';
   else if (leadStatus === 'В роботі' || leadStatus === 'Активний') statusClass = 'status-work';
   else if (leadStatus === 'Підтверджено' || leadStatus === 'Зарахований') statusClass = 'status-confirmed';
   else if (leadStatus === 'Відмова') statusClass = 'status-refused';
@@ -1478,6 +1481,7 @@ function renderCard(p) {
         <button onclick="event.stopPropagation(); window.open('tel:${phone}')">📞 Дзвінок</button>
         <button onclick="event.stopPropagation(); openMessenger('${phone}')">💬 Писати</button>
         ${trackBtn}
+        <button onclick="event.stopPropagation(); startVerification('${pkgId}')" style="${controlCheck === 'В перевірці' ? 'background:var(--info);color:#fff;' : ''}">🔍 ${controlCheck === 'В перевірці' ? 'В перевірці' : 'В перевірку'}</button>
         <button onclick="event.stopPropagation(); openRouteModal('${pkgId}')">🚖 Маршрут</button>
         <button class="btn-danger" onclick="event.stopPropagation(); deleteRecord('${pkgId}')">🗑️</button>
       </div>
@@ -1654,12 +1658,63 @@ function bulkArchive() {
   afterBulkAction();
 }
 
-// Stub: Змінити статус перевірки
+// Перевести лід в перевірку
+function startVerification(pkgId) {
+  const item = allData.find(p => p['PKG_ID'] === pkgId);
+  if (!item) return;
+
+  const isAlreadyChecking = item['Контроль перевірки'] === 'В перевірці';
+  if (isAlreadyChecking) {
+    showToast('Вже в перевірці', 'info');
+    return;
+  }
+
+  // Оновити локально
+  item['Контроль перевірки'] = 'В перевірці';
+  item['Дата перевірки'] = new Date().toISOString();
+  item['Статус ліда'] = 'В роботі';
+  renderCards();
+  updateStats();
+  showToast('Переведено в перевірку', 'success');
+
+  // Відправити на сервер
+  if (currentView === 'passengers') {
+    apiPost('setPassengerVerification', { pax_id: pkgId, status: 'В перевірці' });
+  } else {
+    apiPost('updateField', { pkg_id: pkgId, col: 'Контроль перевірки', value: 'В перевірці' });
+  }
+}
+
+// Змінити статус перевірки (bulk)
 function bulkSetVerifyStatus(status) {
   const ids = getSelectedIds();
   if (ids.length === 0) return;
-  console.log('bulkSetVerifyStatus:', status, ids);
-  showToast(`${ids.length} посилок → "${status}" (заглушка)`, 'info');
+
+  // Оновити локально кожен запис
+  ids.forEach(id => {
+    const item = allData.find(p => p['PKG_ID'] === id);
+    if (item) {
+      item['Контроль перевірки'] = status;
+      item['Дата перевірки'] = new Date().toISOString();
+      if (status === 'В перевірці') {
+        item['Статус ліда'] = 'В роботі';
+      }
+    }
+  });
+
+  renderCards();
+  updateStats();
+  showToast(`${ids.length} записів → "${status}"`, 'success');
+
+  // Відправити на сервер
+  ids.forEach(id => {
+    if (currentView === 'passengers') {
+      apiPost('setPassengerVerification', { pax_id: id, status: status });
+    } else {
+      apiPost('updateField', { pkg_id: id, col: 'Контроль перевірки', value: status });
+    }
+  });
+
   afterBulkAction();
 }
 

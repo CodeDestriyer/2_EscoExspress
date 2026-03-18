@@ -39,6 +39,8 @@ var PAX_COLS = [
   'Дата відправки',
   'Примітка',
   'Тег',
+  'Контроль перевірки',
+  'Дата перевірки',
   'CLI_ID',
   'DATE_ARCHIVE',
   'ARCHIVED_BY',
@@ -65,6 +67,9 @@ function doPost(e) {
 
       // UPDATE
       case 'updatePassengerField': result = apiUpdatePassengerField(body); break;
+
+      // VERIFICATION
+      case 'setPassengerVerification': result = apiSetPassengerVerification(body); break;
 
       // DELETE (archive)
       case 'deletePassenger':   result = apiDeletePassenger(body); break;
@@ -295,7 +300,7 @@ function apiGetPassengerStats(params) {
     total: 0,
     ue: 0,
     eu: 0,
-    byStatus: { 'Новий': 0, 'В роботі': 0, 'Підтверджено': 0, 'Відмова': 0 },
+    byStatus: { 'Новий': 0, 'В роботі': 0, 'Підтверджено': 0, 'Відмова': 0, 'В перевірці': 0 },
     byPay: { 'Оплачено': 0, 'Частково': 0, 'Не оплачено': 0 },
     totalDebt: 0,
     totalSeats: 0
@@ -358,6 +363,8 @@ function apiAddPassenger(params) {
   obj['Статус CRM'] = 'Активний';
   obj['Примітка'] = d.note || d['Примітка'] || '';
   obj['Тег'] = d.tag || d['Тег'] || '';
+  obj['Контроль перевірки'] = '';
+  obj['Дата перевірки'] = '';
 
   // Розрахунок боргу
   obj['Борг'] = String(calcDebt(obj));
@@ -491,6 +498,43 @@ function apiCheckDuplicates(params) {
   }
 
   return { ok: true, duplicates: duplicates, count: duplicates.length };
+}
+
+/**
+ * Встановити статус перевірки пасажира
+ * params: { pax_id, status } — status: 'В перевірці' | 'Перевірено' | 'Відхилено' | ''
+ */
+function apiSetPassengerVerification(params) {
+  var sheet = getSheet();
+  var found = findRow(sheet, 'PAX_ID', params.pax_id);
+
+  if (!found) {
+    return { ok: false, error: 'Пасажира не знайдено: ' + params.pax_id };
+  }
+
+  var status = params.status || 'В перевірці';
+
+  // Оновити Контроль перевірки
+  var checkIdx = found.headers.indexOf('Контроль перевірки');
+  if (checkIdx !== -1) {
+    sheet.getRange(found.rowNum, checkIdx + 1).setValue(status);
+  }
+
+  // Оновити Дата перевірки
+  var dateIdx = found.headers.indexOf('Дата перевірки');
+  if (dateIdx !== -1) {
+    sheet.getRange(found.rowNum, dateIdx + 1).setValue(now());
+  }
+
+  // Якщо "В перевірці" — змінити Статус ліда на "В роботі"
+  if (status === 'В перевірці') {
+    var lidIdx = found.headers.indexOf('Статус ліда');
+    if (lidIdx !== -1) {
+      sheet.getRange(found.rowNum, lidIdx + 1).setValue('В роботі');
+    }
+  }
+
+  return { ok: true, pax_id: params.pax_id, status: status };
 }
 
 // ============================================================
