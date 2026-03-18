@@ -526,11 +526,15 @@ function apiSetPassengerVerification(params) {
     sheet.getRange(found.rowNum, dateIdx + 1).setValue(now());
   }
 
-  // Якщо "В перевірці" — змінити Статус ліда на "В роботі"
-  if (status === 'В перевірці') {
-    var lidIdx = found.headers.indexOf('Статус ліда');
-    if (lidIdx !== -1) {
+  // Автоматично оновити Статус ліда залежно від перевірки
+  var lidIdx = found.headers.indexOf('Статус ліда');
+  if (lidIdx !== -1) {
+    if (status === 'В перевірці') {
       sheet.getRange(found.rowNum, lidIdx + 1).setValue('В роботі');
+    } else if (status === 'Готова до маршруту') {
+      sheet.getRange(found.rowNum, lidIdx + 1).setValue('Підтверджено');
+    } else if (status === 'Відхилено') {
+      sheet.getRange(found.rowNum, lidIdx + 1).setValue('Відмова');
     }
   }
 

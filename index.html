@@ -324,6 +324,7 @@ body {
 .lead-card.status-refused   { border-left-color: var(--danger); }
 .lead-card.status-unknown   { border-left-color: var(--danger); background: #fef2f2; }
 .lead-card.status-checking  { border-left-color: #6366f1; background: #eef2ff; }
+.lead-card.status-ready     { border-left-color: #22c55e; background: #f0fdf4; }
 
 /* Card Header — always visible */
 .card-header { cursor: pointer; }
@@ -1329,7 +1330,8 @@ function renderCard(p) {
 
   // Status class
   let statusClass = '';
-  if (controlCheck === 'В перевірці') statusClass = 'status-checking';
+  if (controlCheck === 'Готова до маршруту') statusClass = 'status-ready';
+  else if (controlCheck === 'В перевірці') statusClass = 'status-checking';
   else if (leadStatus === 'Новий') statusClass = 'status-new';
   else if (leadStatus === 'В роботі' || leadStatus === 'Активний') statusClass = 'status-work';
   else if (leadStatus === 'Підтверджено' || leadStatus === 'Зарахований') statusClass = 'status-confirmed';
@@ -1482,6 +1484,8 @@ function renderCard(p) {
         <button onclick="event.stopPropagation(); openMessenger('${phone}')">💬 Писати</button>
         ${trackBtn}
         <button onclick="event.stopPropagation(); startVerification('${pkgId}')" style="${controlCheck === 'В перевірці' ? 'background:var(--info);color:#fff;' : ''}">🔍 ${controlCheck === 'В перевірці' ? 'В перевірці' : 'В перевірку'}</button>
+        ${controlCheck === 'В перевірці' ? `<button onclick="event.stopPropagation(); completeVerification('${pkgId}')" style="background:var(--success);color:#fff;">✅ Готово</button>` : ''}
+        ${controlCheck === 'Готова до маршруту' ? `<span style="display:inline-flex;align-items:center;padding:6px 12px;background:#dcfce7;color:#166534;border-radius:8px;font-size:12px;font-weight:600;">✅ Готова</span>` : ''}
         <button onclick="event.stopPropagation(); openRouteModal('${pkgId}')">🚖 Маршрут</button>
         <button class="btn-danger" onclick="event.stopPropagation(); deleteRecord('${pkgId}')">🗑️</button>
       </div>
@@ -1685,6 +1689,32 @@ function startVerification(pkgId) {
   }
 }
 
+// Завершити перевірку — позначити як "Готово"
+function completeVerification(pkgId) {
+  const item = allData.find(p => p['PKG_ID'] === pkgId);
+  if (!item) return;
+
+  if (item['Контроль перевірки'] === 'Готова до маршруту') {
+    showToast('Вже позначено як готова', 'info');
+    return;
+  }
+
+  // Оновити локально
+  item['Контроль перевірки'] = 'Готова до маршруту';
+  item['Дата перевірки'] = new Date().toISOString();
+  item['Статус ліда'] = 'Підтверджено';
+  renderCards();
+  updateStats();
+  showToast('Перевірку завершено — готова до маршруту', 'success');
+
+  // Відправити на сервер
+  if (currentView === 'passengers') {
+    apiPost('setPassengerVerification', { pax_id: pkgId, status: 'Готова до маршруту' });
+  } else {
+    apiPost('updateField', { pkg_id: pkgId, col: 'Контроль перевірки', value: 'Готова до маршруту' });
+  }
+}
+
 // Змінити статус перевірки (bulk)
 function bulkSetVerifyStatus(status) {
   const ids = getSelectedIds();
@@ -1698,6 +1728,8 @@ function bulkSetVerifyStatus(status) {
       item['Дата перевірки'] = new Date().toISOString();
       if (status === 'В перевірці') {
         item['Статус ліда'] = 'В роботі';
+      } else if (status === 'Готова до маршруту') {
+        item['Статус ліда'] = 'Підтверджено';
       }
     }
   });
