@@ -2543,14 +2543,28 @@ function _positionDropdownList(wrap) {
 function saveInlineEdit(pkgId, col, value, el) {
   const item = allData.find(p => p['PKG_ID'] === pkgId);
   if (item) item[col] = value;
-  restoreBlock(el, value, pkgId, col);
-  // Mark as changed
-  const block = el.closest('.detail-block');
-  if (block) { block.className = 'detail-block changed'; }
+
+  // Re-render entire card so header (price, currency, badges, meta) updates too
+  const wasOpen = openCardId === pkgId;
+  const activeTab = (() => {
+    const card = document.querySelector(`.lead-card[data-id="${pkgId}"]`);
+    if (!card) return 'parcel';
+    const active = card.querySelector('.detail-tab.active');
+    return active ? active.dataset.tab : 'parcel';
+  })();
+
+  // Keep card open after re-render
+  if (wasOpen) openCardId = pkgId;
+  renderCards();
+
+  // Restore active tab
+  if (wasOpen) {
+    switchTab(pkgId, activeTab);
+  }
+
   apiPost('updateField', { pkg_id: pkgId, col, value }).then(res => {
     if (res.ok) {
       showToast('Збережено', 'success');
-      if (block) block.className = 'detail-block ' + (value ? 'filled' : 'empty');
     }
   });
 }
