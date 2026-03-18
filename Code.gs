@@ -7,7 +7,7 @@
 // ===== КОНФІГУРАЦІЯ =====
 var CONFIG = {
   // ID таблиці пасажирів (замінити на реальний)
-  SHEET_ID: 'YOUR_SPREADSHEET_ID_HERE',
+  SHEET_ID: '1lgaCHqWBIa6oFjFWfD8m58sLwbvQjmeje2gx3YAnBCo',
   // Назва аркуша з пасажирами
   SHEET_NAME: 'Пасажири',
   // TTL кешу в секундах
