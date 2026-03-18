@@ -133,7 +133,35 @@ body {
   transition: width 0.3s;
   flex-shrink: 0;
 }
-.sidebar.collapsed { width: 0; overflow: hidden; }
+.sidebar.collapsed { width: 0; overflow: hidden; padding: 0; }
+
+/* Sidebar toggle button */
+.sidebar-toggle-btn {
+  position: sticky;
+  top: 52px;
+  z-index: 150;
+  width: 22px;
+  height: 44px;
+  background: linear-gradient(180deg, #f8fafc, #e2e8f0);
+  border: 1px solid var(--border);
+  border-left: none;
+  border-radius: 0 8px 8px 0;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  color: var(--text-secondary);
+  flex-shrink: 0;
+  transition: all 0.2s;
+  align-self: flex-start;
+  margin-top: 12px;
+}
+.sidebar-toggle-btn:hover {
+  background: #e2e8f0;
+  color: var(--primary);
+  width: 26px;
+}
 
 .sidebar-section {
   padding: 8px 12px;
@@ -764,6 +792,7 @@ body {
 /* ===== RESPONSIVE ===== */
 @media (max-width: 900px) {
   .sidebar { display: none; }
+  .sidebar-toggle-btn { display: none; }
   .burger { display: block; }
 }
 @media (max-width: 768px) {
@@ -910,6 +939,7 @@ body {
       <button style="width:100%;padding:8px;margin-top:4px;border:2px dashed var(--border);border-radius:8px;background:none;color:var(--info);font-family:inherit;font-size:12px;font-weight:600;cursor:pointer;" onclick="createRoute()">+ Новий маршрут</button>
     </div>
   </aside>
+  <button class="sidebar-toggle-btn" id="sidebarToggleBtn" onclick="toggleSidebar()" title="Згорнути/розгорнути меню">◀</button>
 
   <!-- MAIN CONTENT -->
   <main class="main-content">
@@ -1543,19 +1573,35 @@ function toggleSelect(pkgId) {
 }
 
 // ===== BULK ACTION MENU =====
+let sidebarWasCollapsedBeforeBulk = false;
+
 function updateBulkMenu() {
   const menu = document.getElementById('bulkMenu');
   const countEl = document.getElementById('bulkCount');
+  const sidebar = document.getElementById('sidebar');
   if (!menu || !countEl) return;
   const n = selectedIds.size;
   countEl.textContent = n;
   const appLayout = document.querySelector('.app-layout');
   if (n > 0) {
     menu.classList.add('visible');
-    if (window.innerWidth > 900 && appLayout) appLayout.style.marginLeft = '250px';
+    if (window.innerWidth > 900) {
+      if (appLayout) appLayout.style.marginLeft = '250px';
+      // Auto-collapse main sidebar
+      if (sidebar && !sidebar.classList.contains('collapsed')) {
+        sidebarWasCollapsedBeforeBulk = false;
+        sidebar.classList.add('collapsed');
+        updateSidebarToggleBtn();
+      }
+    }
   } else {
     menu.classList.remove('visible');
     if (appLayout) appLayout.style.marginLeft = '';
+    // Restore sidebar if we collapsed it
+    if (window.innerWidth > 900 && sidebar && !sidebarWasCollapsedBeforeBulk) {
+      sidebar.classList.remove('collapsed');
+      updateSidebarToggleBtn();
+    }
   }
 }
 
@@ -1693,7 +1739,21 @@ function toggleSection(header) {
 }
 
 function toggleSidebar() {
-  document.getElementById('sidebar').classList.toggle('collapsed');
+  const sidebar = document.getElementById('sidebar');
+  sidebar.classList.toggle('collapsed');
+  // Remember manual state so bulk menu doesn't restore it
+  if (selectedIds.size > 0 && sidebar.classList.contains('collapsed')) {
+    sidebarWasCollapsedBeforeBulk = true;
+  }
+  updateSidebarToggleBtn();
+}
+
+function updateSidebarToggleBtn() {
+  const btn = document.getElementById('sidebarToggleBtn');
+  const sidebar = document.getElementById('sidebar');
+  if (btn && sidebar) {
+    btn.textContent = sidebar.classList.contains('collapsed') ? '▶' : '◀';
+  }
 }
 
 function toggleMobileSidebar() {
