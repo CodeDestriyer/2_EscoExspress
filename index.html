@@ -278,8 +278,8 @@ body {
   font-size: 14px;
 }
 
-/* ===== PARCEL CARD ===== */
-.card {
+/* ===== LEAD CARD ===== */
+.lead-card {
   background: #fff;
   border-radius: 8px;
   box-shadow: var(--shadow);
@@ -287,71 +287,93 @@ body {
   overflow: hidden;
   transition: box-shadow 0.2s;
 }
-.card:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.12); }
-.card.status-new       { border-left-color: var(--warning); }
-.card.status-work      { border-left-color: var(--info); }
-.card.status-confirmed { border-left-color: var(--success); }
-.card.status-refused   { border-left-color: var(--danger); }
+.lead-card:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.12); }
+.lead-card.status-new       { border-left-color: var(--warning); }
+.lead-card.status-work      { border-left-color: var(--info); }
+.lead-card.status-confirmed { border-left-color: var(--success); }
+.lead-card.status-refused   { border-left-color: var(--danger); }
+.lead-card.status-unknown   { border-left-color: var(--danger); background: #fef2f2; }
 
-/* Card Top Row */
-.card-top {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 10px;
-  flex-wrap: wrap;
-}
-.card-checkbox {
-  width: 16px;
-  height: 16px;
-  cursor: pointer;
-  accent-color: var(--primary);
-}
-.badge-dir {
-  font-size: 10px;
-  font-weight: 700;
-  padding: 2px 8px;
-  border-radius: 12px;
-}
-.badge-dir.ue { background: #dbeafe; color: #1d4ed8; }
-.badge-dir.eu { background: #d1fae5; color: #047857; }
-.card-phone {
-  font-weight: 700;
-  font-size: 14px;
-}
-.badge-weight {
-  background: #e0e7ff;
-  color: #3730a3;
-  padding: 2px 8px;
-  border-radius: 12px;
-  font-size: 10px;
-  font-weight: 700;
-}
-.card-price {
-  margin-left: auto;
-  font-size: 16px;
-  font-weight: 800;
-  color: var(--success);
-}
-
-/* Card Info Row */
-.card-info {
+/* Card Header — always visible */
+.card-header { cursor: pointer; }
+.card-top-row {
   display: flex;
   align-items: center;
   gap: 6px;
-  padding: 4px 10px;
+  padding: 8px 10px;
   flex-wrap: wrap;
+}
+.card-top-row .card-checkbox {
+  width: 16px; height: 16px;
+  cursor: pointer;
+  accent-color: var(--primary);
+  flex-shrink: 0;
+}
+.dir-badge {
+  font-size: 10px; font-weight: 700;
+  padding: 2px 8px; border-radius: 12px;
+  white-space: nowrap;
+}
+.dir-badge-ua-eu { background: #dbeafe; color: #1d4ed8; }
+.dir-badge-eu-ua { background: #d1fae5; color: #047857; }
+.card-ttn { font-size: 11px; color: var(--text-secondary); font-weight: 600; }
+.badge-weight {
+  background: #e0e7ff; color: #3730a3;
+  padding: 2px 8px; border-radius: 12px;
+  font-size: 10px; font-weight: 700;
+}
+.card-finance {
+  margin-left: auto;
+  display: flex; align-items: center; gap: 8px;
+  flex-wrap: wrap; justify-content: flex-end;
+}
+.card-price {
+  font-size: 15px; font-weight: 800;
+}
+.card-price.paid { color: var(--success); }
+.card-price.partial { color: var(--warning); }
+.card-price.unpaid { color: var(--danger); }
+.card-deposit { font-size: 11px; color: var(--text-secondary); }
+.card-debt { font-size: 11px; color: var(--danger); font-weight: 700; }
+.card-actions-toggle {
+  background: none; border: none; cursor: pointer;
+  font-size: 14px; color: var(--text-secondary);
+  padding: 4px; transition: transform 0.2s;
+}
+.card-actions-toggle.open { transform: rotate(180deg); }
+
+/* Row 2 */
+.card-row2-wrap {
+  padding: 2px 10px 6px;
   font-size: 12px;
 }
-.card-name { font-weight: 600; }
-.card-pkgid { color: var(--text-secondary); font-size: 10px; }
+.card-row2 {
+  display: flex; align-items: center; gap: 6px;
+  flex-wrap: wrap;
+}
+.card-pkgid { color: var(--text-secondary); font-size: 10px; font-weight: 600; }
+.card-sender-recv { font-weight: 600; }
+.card-address {
+  display: flex; align-items: center; gap: 4px;
+  font-size: 11px; color: var(--text-secondary);
+  padding-top: 2px;
+}
+.card-meta-tags {
+  display: flex; gap: 6px; flex-wrap: wrap;
+  padding-top: 3px; font-size: 10px;
+  color: var(--text-secondary);
+}
+.meta-tag {
+  display: inline-flex; align-items: center; gap: 2px;
+  background: #f1f5f9; padding: 1px 6px; border-radius: 10px;
+}
+.meta-tag.tag-debt { background: #fef2f2; color: var(--danger); font-weight: 600; }
+.meta-tag.tag-vip { background: #fef3c7; color: #92400e; font-weight: 600; }
 
 /* Badges */
 .badge {
-  padding: 2px 8px;
-  border-radius: 12px;
-  font-size: 10px;
-  font-weight: 700;
+  padding: 2px 8px; border-radius: 12px;
+  font-size: 10px; font-weight: 700;
   white-space: nowrap;
 }
 .badge-new       { background: #dbeafe; color: #1d4ed8; }
@@ -361,114 +383,26 @@ body {
 .badge-paid      { background: #d1fae5; color: #065f46; }
 .badge-partial   { background: #fef3c7; color: #92400e; }
 .badge-unpaid    { background: #fee2e2; color: #991b1b; }
-.badge-pax       { background: #ede9fe; color: #5b21b6; }
+.badge-unknown   { background: #fee2e2; color: #991b1b; }
+.badge-check     { background: #e0e7ff; color: #3730a3; }
 
-/* Card Route Row */
-.card-route {
+/* Route Strip */
+.card-route-strip {
+  display: flex; align-items: center; gap: 6px;
   padding: 4px 10px;
-  font-size: 11px;
-  color: var(--text-secondary);
+  background: #f0fdf4; border-top: 1px solid #d1fae5;
+  font-size: 11px; color: #065f46; font-weight: 600;
 }
 
-/* Card Meta Row */
-.card-meta {
-  display: flex;
-  gap: 8px;
-  padding: 6px 10px;
-  flex-wrap: wrap;
-  font-size: 11px;
-  color: var(--text-secondary);
-  border-top: 1px solid var(--border);
-}
-.card-meta .meta-tag {
-  display: inline-flex;
-  align-items: center;
-  gap: 3px;
-}
-.meta-debt { color: var(--danger); font-weight: 600; }
-
-/* Card Details (expandable) */
-.card-details {
-  display: none;
-  padding: 0;
-  background: #fafbfc;
-  border-top: 1px solid var(--border);
-}
-.card-details.open { display: block; }
-
-/* Detail Sections (collapsible groups) */
-.detail-section {
-  border-bottom: 1px solid var(--border);
-}
-.detail-section:last-of-type { border-bottom: none; }
-.detail-section-header {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 8px 12px;
-  background: #f0f4f8;
-  cursor: pointer;
-  font-size: 11px;
-  font-weight: 700;
-  color: var(--primary);
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  user-select: none;
-  transition: background 0.15s;
-}
-.detail-section-header:hover { background: #e2e8f0; }
-.detail-section-header .section-icon { font-size: 13px; }
-.detail-section-header .section-arrow {
-  margin-left: auto;
-  font-size: 10px;
-  transition: transform 0.2s;
-}
-.detail-section.open .section-arrow { transform: rotate(180deg); }
-.detail-section-body {
-  display: none;
-  padding: 10px 12px;
-}
-.detail-section.open .detail-section-body { display: block; }
-
-.details-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-  gap: 8px;
-}
-.detail-field {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-.detail-label {
-  font-size: 10px;
-  color: var(--text-secondary);
-  text-transform: uppercase;
-  letter-spacing: 0.3px;
-}
-.detail-value {
-  font-size: 12px;
-  font-weight: 500;
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
-.detail-value .edit-btn {
-  background: none;
-  border: none;
-  cursor: pointer;
-  font-size: 11px;
-  opacity: 0.4;
-  transition: opacity 0.15s;
-}
-.detail-value .edit-btn:hover { opacity: 1; }
-
+/* Quick Actions Panel */
 .card-actions {
-  display: flex;
-  gap: 6px;
-  padding: 8px 10px;
+  display: none;
+  gap: 6px; padding: 6px 10px;
   border-top: 1px solid var(--border);
+  background: #f8fafc;
+  flex-wrap: wrap;
 }
+.card-actions.open { display: flex; }
 .card-actions button {
   padding: 5px 10px;
   border: 1px solid var(--border);
@@ -478,8 +412,104 @@ body {
   font-size: 11px;
   cursor: pointer;
   transition: all 0.15s;
+  white-space: nowrap;
 }
 .card-actions button:hover { background: var(--bg-main); }
+.card-actions button.btn-danger { color: var(--danger); }
+
+/* Card Details (expandable) */
+.card-details {
+  display: none;
+  background: #fafbfc;
+  border-top: 1px solid var(--border);
+}
+.card-details.open { display: block; }
+
+/* Detail Tabs */
+.detail-tabs {
+  display: flex;
+  overflow-x: auto;
+  border-bottom: 2px solid var(--border);
+  background: #f0f4f8;
+}
+.detail-tab {
+  padding: 8px 12px;
+  font-size: 11px; font-weight: 600;
+  color: var(--text-secondary);
+  cursor: pointer;
+  white-space: nowrap;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -2px;
+  transition: all 0.15s;
+  user-select: none;
+}
+.detail-tab:hover { color: var(--primary); background: #e2e8f0; }
+.detail-tab.active {
+  color: var(--primary);
+  border-bottom-color: var(--primary);
+  background: #fff;
+}
+
+/* Tab Panel */
+.detail-tab-panel {
+  display: none;
+  padding: 10px 12px;
+}
+.detail-tab-panel.active { display: block; }
+
+/* Detail Grid */
+.details-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 8px;
+}
+
+/* Detail Block — field with border indicator */
+.detail-block {
+  display: flex; flex-direction: column;
+  gap: 2px;
+  border-left: 3px solid var(--border);
+  padding-left: 8px;
+  min-height: 36px;
+}
+.detail-block.filled { border-left-color: var(--success); }
+.detail-block.empty  { border-left-color: var(--danger); }
+.detail-block.changed { border-left-color: var(--warning); }
+.detail-block.readonly { border-left-color: var(--text-secondary); opacity: 0.7; }
+
+.detail-block-label {
+  font-size: 10px;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+.detail-block-value {
+  font-size: 12px; font-weight: 500;
+  display: flex; align-items: center; gap: 4px;
+  cursor: pointer;
+  min-height: 20px;
+  padding: 2px 0;
+  border-radius: 3px;
+  transition: background 0.1s;
+}
+.detail-block-value:hover { background: #e2e8f0; }
+.detail-block.readonly .detail-block-value { cursor: default; }
+.detail-block.readonly .detail-block-value:hover { background: transparent; }
+.detail-block-value .val-text { flex: 1; }
+.detail-block-value .val-empty { color: var(--text-secondary); font-style: italic; }
+
+/* Inline edit input */
+.detail-block-value input,
+.detail-block-value select {
+  width: 100%; padding: 2px 6px;
+  border: 1px solid var(--info); border-radius: 4px;
+  font-size: 12px; font-family: inherit;
+  outline: none;
+}
+.detail-block-value input:focus,
+.detail-block-value select:focus {
+  box-shadow: 0 0 0 2px rgba(59,130,246,0.2);
+}
 
 /* ===== BOTTOM NAV (Mobile) ===== */
 .bottom-nav {
@@ -1002,46 +1032,47 @@ function renderCards() {
   updateCounters();
 }
 
-function renderDetailSection(icon, title, fields, pkgId, startOpen) {
-  const html = fields.filter(([,v]) => v && v !== '—' && v !== '0' && v !== ' ').map(([label, value]) => `
-    <div class="detail-field">
-      <span class="detail-label">${label}</span>
-      <span class="detail-value" data-pkg="${pkgId}" data-col="${label}">
-        ${value || '—'}
-        <button class="edit-btn" onclick="event.stopPropagation(); startEdit(this, '${pkgId}', '${label}')">✏️</button>
-      </span>
-    </div>
-  `).join('');
-  if (!html.trim()) return '';
+// ===== DETAIL BLOCK RENDERER =====
+function renderDetailBlock(label, value, pkgId, opts = {}) {
+  const v = (value !== undefined && value !== null) ? String(value).trim() : '';
+  const isFilled = v && v !== '—' && v !== '0';
+  const stateClass = opts.readonly ? 'readonly' : (isFilled ? 'filled' : 'empty');
+  const displayVal = isFilled
+    ? `<span class="val-text">${v}</span>`
+    : `<span class="val-empty">—</span>`;
+  const clickEdit = opts.readonly
+    ? ''
+    : `onclick="event.stopPropagation(); startInlineEdit(this, '${pkgId}', '${label.replace(/'/g, "\\'")}')"`;
   return `
-    <div class="detail-section ${startOpen ? 'open' : ''}" onclick="event.stopPropagation(); this.classList.toggle('open')">
-      <div class="detail-section-header">
-        <span class="section-icon">${icon}</span> ${title}
-        <span class="section-arrow">▼</span>
+    <div class="detail-block ${stateClass}">
+      <span class="detail-block-label">${label}</span>
+      <div class="detail-block-value" data-pkg="${pkgId}" data-col="${label}" ${clickEdit}>
+        ${displayVal}
       </div>
-      <div class="detail-section-body" onclick="event.stopPropagation()">
-        <div class="details-grid">${html}</div>
-      </div>
-    </div>
-  `;
+    </div>`;
 }
 
+function renderDetailGrid(fields, pkgId, opts = {}) {
+  return `<div class="details-grid">${fields.map(([l, v, o]) => renderDetailBlock(l, v, pkgId, {...opts, ...o})).join('')}</div>`;
+}
+
+// ===== RENDER CARD =====
 function renderCard(p) {
   const pkgId = p['PKG_ID'] || '';
-  const isPax = (p['Тип запису'] || '').includes('Пасажир');
-  const name = p['Піб відправника'] || '—';
-  const phone = p['Телефон реєстратора'] || '—';
+  const name = p['Піб відправника'] || '';
+  const phone = p['Телефон реєстратора'] || '';
   const receiver = p['Піб отримувача'] || '';
   const receiverPhone = p['Телефон отримувача'] || '';
   const direction = p['Напрям'] || '';
-  const dirClass = direction === 'УК→ЄВ' ? 'ue' : 'eu';
-  const dirLabel = direction === 'УК→ЄВ' ? 'УК→ЄВ' : 'ЄВ→УК';
+  const isUE = direction === 'УК→ЄВ';
+  const dirBadgeClass = isUE ? 'dir-badge-ua-eu' : 'dir-badge-eu-ua';
+  const dirLabel = isUE ? 'УК→ЄВ' : 'ЄВ→УК';
   const addressFrom = p['Адреса відправки'] || '';
   const addressTo = p['Адреса в Європі'] || p['Місто Нова Пошта'] || '';
   const weight = p['Кг'] || '';
   const price = p['Сума'] || '';
   const currency = p['Валюта оплати'] || '';
-  const deposit = p['Завдаток'] || '';
+  const deposit = parseFloat(p['Завдаток']) || 0;
   const debt = parseFloat(p['Борг']) || 0;
   const payStatus = p['Статус оплати'] || '';
   const leadStatus = p['Статус ліда'] || '';
@@ -1052,6 +1083,8 @@ function renderCard(p) {
   const controlCheck = p['Контроль перевірки'] || '';
   const statusPkg = p['Статус посилки'] || '';
   const statusCrm = p['Статус CRM'] || '';
+  const rteId = p['RTE_ID'] || '';
+  const tag = p['Тег'] || '';
   const isOpen = openCardId === pkgId;
 
   // Status class
@@ -1060,133 +1093,171 @@ function renderCard(p) {
   else if (leadStatus === 'В роботі' || leadStatus === 'Активний') statusClass = 'status-work';
   else if (leadStatus === 'Підтверджено' || leadStatus === 'Зарахований') statusClass = 'status-confirmed';
   else if (leadStatus === 'Відмова') statusClass = 'status-refused';
+  else if (leadStatus === 'Невідомий') statusClass = 'status-unknown';
 
-  // Lead status badge
-  let leadBadge = '';
-  if (leadStatus === 'Новий') leadBadge = '<span class="badge badge-new">Новий</span>';
-  else if (leadStatus === 'В роботі' || leadStatus === 'Активний') leadBadge = '<span class="badge badge-work">' + leadStatus + '</span>';
-  else if (leadStatus === 'Підтверджено' || leadStatus === 'Зарахований') leadBadge = '<span class="badge badge-confirmed">' + leadStatus + '</span>';
-  else if (leadStatus === 'Відмова') leadBadge = '<span class="badge badge-refused">Відмова</span>';
-  else if (leadStatus) leadBadge = '<span class="badge">' + leadStatus + '</span>';
+  // Lead badge
+  const leadBadgeMap = {
+    'Новий': 'badge-new', 'В роботі': 'badge-work', 'Активний': 'badge-work',
+    'Підтверджено': 'badge-confirmed', 'Зарахований': 'badge-confirmed',
+    'Відмова': 'badge-refused', 'Невідомий': 'badge-unknown'
+  };
+  const leadBadge = leadStatus ? `<span class="badge ${leadBadgeMap[leadStatus] || ''}">${leadStatus}</span>` : '';
 
-  // Pay status badge
-  let payBadge = '';
-  if (payStatus === 'Оплачено') payBadge = '<span class="badge badge-paid">Оплачено</span>';
-  else if (payStatus === 'Частково') payBadge = '<span class="badge badge-partial">Частково</span>';
-  else if (payStatus === 'Не оплачено') payBadge = '<span class="badge badge-unpaid">Не оплачено</span>';
+  // Pay badge + price color
+  const payBadgeMap = { 'Оплачено': 'badge-paid', 'Частково': 'badge-partial', 'Не оплачено': 'badge-unpaid' };
+  const payBadge = payStatus ? `<span class="badge ${payBadgeMap[payStatus] || ''}">${payStatus}</span>` : '';
+  const priceColorClass = payStatus === 'Оплачено' ? 'paid' : (payStatus === 'Частково' ? 'partial' : 'unpaid');
 
-  // Control check badge
-  let checkBadge = '';
-  if (controlCheck === 'Готова до маршруту') checkBadge = '<span class="badge badge-confirmed">Готова</span>';
-  else if (controlCheck === 'В перевірці') checkBadge = '<span class="badge badge-work">В перевірці</span>';
+  // Check badge
+  const checkBadge = controlCheck
+    ? `<span class="badge ${controlCheck === 'Готова до маршруту' ? 'badge-confirmed' : 'badge-check'}">${controlCheck === 'Готова до маршруту' ? 'Готова' : controlCheck}</span>`
+    : '';
 
-  // Route line with address
-  let routeLine = '';
-  if (addressTo) {
-    routeLine = `<div class="card-route">📍 ${addressTo}</div>`;
-  }
+  // TTN display
+  const ttnHtml = (isUE && ttn) ? `<span class="card-ttn">TTH: ${ttn}</span>` : '';
+
+  // Route strip
+  const routeStrip = rteId
+    ? `<div class="card-route-strip">✅ В маршруті: ${rteId}${auto ? ' · 🚐 ' + auto : ''}</div>`
+    : '';
 
   // Meta tags
-  let metaTags = '';
-  if (auto) metaTags += `<span class="meta-tag">🚐 ${auto}</span>`;
-  if (debt > 0) metaTags += `<span class="meta-tag meta-debt">💰 Борг: ${debt}</span>`;
-  if (note) metaTags += `<span class="meta-tag">📝 ${note.substring(0, 30)}</span>`;
+  let metaHtml = '';
+  if (dateCreated) metaHtml += `<span class="meta-tag">📅 ${dateCreated}</span>`;
+  if (statusPkg) metaHtml += `<span class="meta-tag">${statusPkg}</span>`;
+  if (phone) metaHtml += `<span class="meta-tag">📞 ${phone}</span>`;
+  if (tag) metaHtml += `<span class="meta-tag ${tag === 'VIP' || tag === 'срочна' ? 'tag-vip' : ''}">#${tag}</span>`;
 
-  // ===== SECTIONS =====
-  // 1. Основне — контакти та адреси
-  const sectionOsnovne = renderDetailSection('📋', 'Основне', [
-    ['PKG_ID', pkgId],
-    ['Напрям', direction],
-    ['Дата створення', dateCreated],
-    ['SOURCE_SHEET', p['SOURCE_SHEET'] || ''],
-    ['ПІБ відправника', name],
-    ['Телефон відправника', phone],
-    ['Адреса відправки', addressFrom],
-    ['ПІБ отримувача', receiver],
-    ['Телефон отримувача', receiverPhone],
-    ['Адреса в Європі', addressTo],
-  ], pkgId, true);
-
-  // 2. Посилка — вміст, вага, ТТН
-  const sectionPosylka = renderDetailSection('📦', 'Посилка', [
-    ['Номер ТТН', ttn],
-    ['Внутрішній №', p['Внутрішній №'] || ''],
+  // ===== TAB PANELS =====
+  // 📦 Посилка
+  const tabParcel = renderDetailGrid([
     ['Опис', p['Опис'] || ''],
     ['Деталі', p['Деталі'] || ''],
     ['Кількість позицій', p['Кількість позицій'] || ''],
     ['Кг', weight],
     ['Оціночна вартість', p['Оціночна вартість'] || ''],
+    ['Номер ТТН', ttn],
+    ['Внутрішній №', p['Внутрішній №'] || ''],
     ['Статус посилки', statusPkg],
-    ['Контроль перевірки', controlCheck],
-    ['Дата перевірки', p['Дата перевірки'] || ''],
-    ['Фото посилки', p['Фото посилки'] || ''],
-    ['Тег', p['Тег'] || ''],
-    ['Примітка', note],
-  ], pkgId, false);
-
-  // 3. Фінанси — оплати, борг
-  const sectionFinance = renderDetailSection('💰', 'Фінанси', [
     ['Сума', price ? price + ' ' + currency : ''],
-    ['Завдаток', deposit ? deposit + ' ' + (p['Валюта завдатку'] || '') : ''],
-    ['Борг', debt ? String(debt) : ''],
-    ['Форма оплати', p['Форма оплати'] || ''],
+    ['Валюта оплати', currency],
     ['Статус оплати', payStatus],
-    ['Примітка оплати', p['Примітка оплати'] || ''],
+    ['Фото посилки', p['Фото посилки'] || ''],
+    ['Рейтинг', p['Рейтинг'] || ''],
+    ['Коментар рейтингу', p['Коментар рейтингу'] || ''],
+  ], pkgId);
+
+  // 📄 Основне
+  const tabBasic = renderDetailGrid([
+    ['Піб відправника', name],
+    ['Телефон реєстратора', phone],
+    ['Адреса відправки', addressFrom],
+    ['Піб отримувача', receiver],
+    ['Телефон отримувача', receiverPhone],
+    [isUE ? 'Адреса в Європі' : 'Місто Нова Пошта', addressTo],
+    ['Статус ліда', leadStatus],
+    ['Тег', tag],
+  ], pkgId);
+
+  // 💰 НП (тільки для УК→ЄВ)
+  const tabNP = isUE ? renderDetailGrid([
     ['Сума НП', p['Сума НП'] || ''],
     ['Валюта НП', p['Валюта НП'] || ''],
     ['Форма НП', p['Форма НП'] || ''],
     ['Статус НП', p['Статус НП'] || ''],
-  ], pkgId, false);
+  ], pkgId) : '';
 
-  // 4. Системні — маршрут, статуси, архів
-  const sectionSystem = renderDetailSection('⚙️', 'Системні', [
-    ['Статус ліда', leadStatus],
-    ['Статус CRM', statusCrm],
+  // 💰 Фінанси
+  const tabFinance = renderDetailGrid([
+    ['Сума', price],
+    ['Валюта оплати', currency],
+    ['Завдаток', p['Завдаток'] || ''],
+    ['Валюта завдатку', p['Валюта завдатку'] || ''],
+    ['Форма оплати', p['Форма оплати'] || ''],
+    ['Статус оплати', payStatus],
+    ['Борг', debt ? String(debt) : '', {readonly: true}],
+    ['Примітка оплати', p['Примітка оплати'] || ''],
+  ], pkgId);
+
+  // 🚖 Рейс
+  const tabRoute = renderDetailGrid([
     ['Дата відправки', p['Дата відправки'] || ''],
     ['Таймінг', p['Таймінг'] || ''],
     ['Номер авто', auto],
-    ['RTE_ID', p['RTE_ID'] || ''],
+    ['RTE_ID', rteId, {readonly: true}],
     ['Дата отримання', p['Дата отримання'] || ''],
-    ['Рейтинг', p['Рейтинг'] || ''],
-    ['Коментар рейтингу', p['Коментар рейтингу'] || ''],
+  ], pkgId);
+
+  // ⚙ Системні
+  const tabSystem = renderDetailGrid([
+    ['PKG_ID', pkgId, {readonly: true}],
+    ['Ід_смарт', p['Ід_смарт'] || '', {readonly: true}],
+    ['Дата створення', dateCreated, {readonly: true}],
+    ['SOURCE_SHEET', p['SOURCE_SHEET'] || '', {readonly: true}],
+    ['CLI_ID', p['CLI_ID'] || '', {readonly: true}],
+    ['ORDER_ID', p['ORDER_ID'] || '', {readonly: true}],
+    ['Статус CRM', statusCrm],
+    ['Контроль перевірки', controlCheck],
+    ['Дата перевірки', p['Дата перевірки'] || '', {readonly: true}],
+    ['Примітка', note],
     ['Примітка СМС', p['Примітка СМС'] || ''],
-    ['CLI_ID', p['CLI_ID'] || ''],
-    ['ORDER_ID', p['ORDER_ID'] || ''],
-  ], pkgId, false);
+  ], pkgId);
+
+  // NP tab HTML
+  const npTabBtn = isUE ? `<div class="detail-tab" data-tab="np" onclick="event.stopPropagation(); switchTab('${pkgId}', 'np')">💰 НП</div>` : '';
+  const npTabPanel = isUE ? `<div class="detail-tab-panel" data-tab-panel="np">${tabNP}</div>` : '';
+
+  // Tracking button only for УК→ЄВ with ТТН
+  const trackBtn = (isUE && ttn) ? `<button onclick="event.stopPropagation(); window.open('https://novaposhta.ua/tracking/?cargo_number=${ttn}', '_blank')">📦 Трекінг</button>` : '';
 
   return `
-    <div class="card ${statusClass}" data-id="${pkgId}">
-      <div class="card-top" onclick="toggleCard('${pkgId}')">
-        <input type="checkbox" class="card-checkbox" onclick="event.stopPropagation(); toggleSelect('${pkgId}')" ${selectedIds.has(pkgId) ? 'checked' : ''}>
-        <span class="badge-dir ${dirClass}">${dirLabel}</span>
-        <span class="card-phone">${phone}</span>
-        ${weight ? `<span class="badge-weight">⚖️ ${weight} кг</span>` : ''}
-        <span class="card-price">${price ? price + ' ' + currency : ''}</span>
-      </div>
-      <div class="card-info">
-        <span>📦</span>
-        <span class="card-pkgid">${pkgId}</span>
-        ${leadBadge}
-        ${payBadge}
-        ${checkBadge}
-      </div>
-      <div class="card-info">
-        <span>📍</span>
-        <span class="card-name">${name} → ${receiver || '—'}</span>
-      </div>
-      ${routeLine}
-      ${metaTags ? `<div class="card-meta">${metaTags}</div>` : ''}
-      <div class="card-details ${isOpen ? 'open' : ''}" id="details-${pkgId}">
-        ${sectionOsnovne}
-        ${sectionPosylka}
-        ${sectionFinance}
-        ${sectionSystem}
-        <div class="card-actions">
-          <button onclick="event.stopPropagation(); window.open('tel:${phone}')">📞 Дзвінок</button>
-          <button onclick="event.stopPropagation(); openMessenger('${phone}')">✉️ Написати</button>
-          <button onclick="event.stopPropagation(); openRouteModal('${pkgId}')">🗺️ Маршрут</button>
-          <button onclick="event.stopPropagation(); deleteRecord('${pkgId}')" style="color:var(--danger)">🗑️ Видалити</button>
+    <div class="lead-card ${statusClass}" data-id="${pkgId}">
+      <div class="card-header" onclick="toggleCard('${pkgId}')">
+        <div class="card-top-row">
+          <input type="checkbox" class="card-checkbox" onclick="event.stopPropagation(); toggleSelect('${pkgId}')" ${selectedIds.has(pkgId) ? 'checked' : ''}>
+          <span class="dir-badge ${dirBadgeClass}">${dirLabel}</span>
+          ${ttnHtml}
+          ${weight ? `<span class="badge-weight">⚖️ ${weight} кг</span>` : ''}
+          <div class="card-finance">
+            ${price ? `<span class="card-price ${priceColorClass}">${price} ${currency}</span>` : ''}
+            ${deposit > 0 ? `<span class="card-deposit">завд:${deposit}</span>` : ''}
+            ${debt > 0 ? `<span class="card-debt">борг:${debt}</span>` : ''}
+          </div>
+          <button class="card-actions-toggle" onclick="event.stopPropagation(); toggleActions('${pkgId}', this)" title="Дії">▼</button>
         </div>
+        <div class="card-row2-wrap">
+          <div class="card-row2">
+            <span class="card-pkgid">${pkgId}</span>
+            <span class="card-sender-recv">👤 ${name || '—'} → ${receiver || '—'}</span>
+            ${leadBadge} ${payBadge} ${checkBadge}
+          </div>
+          ${addressTo ? `<div class="card-address">📍 ${addressFrom ? addressFrom + ' → ' : ''}${addressTo}</div>` : ''}
+          ${metaHtml ? `<div class="card-meta-tags">${metaHtml}</div>` : ''}
+        </div>
+      </div>
+      ${routeStrip}
+      <div class="card-actions" id="actions-${pkgId}">
+        <button onclick="event.stopPropagation(); window.open('tel:${phone}')">📞 Дзвінок</button>
+        <button onclick="event.stopPropagation(); openMessenger('${phone}')">💬 Писати</button>
+        ${trackBtn}
+        <button onclick="event.stopPropagation(); openRouteModal('${pkgId}')">🚖 Маршрут</button>
+        <button class="btn-danger" onclick="event.stopPropagation(); deleteRecord('${pkgId}')">🗑️</button>
+      </div>
+      <div class="card-details ${isOpen ? 'open' : ''}" id="details-${pkgId}">
+        <div class="detail-tabs">
+          <div class="detail-tab active" data-tab="parcel" onclick="event.stopPropagation(); switchTab('${pkgId}', 'parcel')">📦 Посилка</div>
+          <div class="detail-tab" data-tab="basic" onclick="event.stopPropagation(); switchTab('${pkgId}', 'basic')">📄 Основне</div>
+          ${npTabBtn}
+          <div class="detail-tab" data-tab="finance" onclick="event.stopPropagation(); switchTab('${pkgId}', 'finance')">💰 Фінанси</div>
+          <div class="detail-tab" data-tab="route" onclick="event.stopPropagation(); switchTab('${pkgId}', 'route')">🚖 Рейс</div>
+          <div class="detail-tab" data-tab="system" onclick="event.stopPropagation(); switchTab('${pkgId}', 'system')">⚙ Системні</div>
+        </div>
+        <div class="detail-tab-panel active" data-tab-panel="parcel">${tabParcel}</div>
+        <div class="detail-tab-panel" data-tab-panel="basic">${tabBasic}</div>
+        ${npTabPanel}
+        <div class="detail-tab-panel" data-tab-panel="finance">${tabFinance}</div>
+        <div class="detail-tab-panel" data-tab-panel="route">${tabRoute}</div>
+        <div class="detail-tab-panel" data-tab-panel="system">${tabSystem}</div>
       </div>
     </div>
   `;
@@ -1198,6 +1269,60 @@ function toggleCard(pkgId) {
   document.querySelectorAll('.card-details').forEach(el => {
     el.classList.toggle('open', el.id === 'details-' + pkgId && openCardId === pkgId);
   });
+}
+
+function toggleActions(pkgId, btn) {
+  const panel = document.getElementById('actions-' + pkgId);
+  if (panel) {
+    panel.classList.toggle('open');
+    if (btn) btn.classList.toggle('open');
+  }
+}
+
+function switchTab(pkgId, tabName) {
+  const card = document.querySelector(`.lead-card[data-id="${pkgId}"]`);
+  if (!card) return;
+  card.querySelectorAll('.detail-tab').forEach(t => t.classList.toggle('active', t.dataset.tab === tabName));
+  card.querySelectorAll('.detail-tab-panel').forEach(p => p.classList.toggle('active', p.dataset.tabPanel === tabName));
+}
+
+function startInlineEdit(el, pkgId, col) {
+  if (el.querySelector('input') || el.querySelector('select')) return;
+  const valEl = el.querySelector('.val-text, .val-empty');
+  const currentVal = valEl && valEl.classList.contains('val-text') ? valEl.textContent.trim() : '';
+  const input = document.createElement('input');
+  input.type = 'text';
+  input.value = currentVal;
+  input.onblur = function() { saveInlineEdit(pkgId, col, input.value, el); };
+  input.onkeydown = function(e) {
+    if (e.key === 'Enter') input.blur();
+    if (e.key === 'Escape') { restoreBlock(el, currentVal, pkgId, col); }
+  };
+  el.innerHTML = '';
+  el.appendChild(input);
+  input.focus();
+}
+
+function saveInlineEdit(pkgId, col, value, el) {
+  const item = allData.find(p => p['PKG_ID'] === pkgId);
+  if (item) item[col] = value;
+  restoreBlock(el, value, pkgId, col);
+  // Mark as changed
+  const block = el.closest('.detail-block');
+  if (block) { block.className = 'detail-block changed'; }
+  apiPost('updateField', { pkg_id: pkgId, col, value }).then(res => {
+    if (res.ok) {
+      showToast('Збережено', 'success');
+      if (block) block.className = 'detail-block ' + (value ? 'filled' : 'empty');
+    }
+  });
+}
+
+function restoreBlock(el, value, pkgId, col) {
+  const v = value ? value.trim() : '';
+  el.innerHTML = v
+    ? `<span class="val-text">${v}</span>`
+    : `<span class="val-empty">—</span>`;
 }
 
 function toggleSelect(pkgId) {
@@ -1307,32 +1432,7 @@ function setVerFilter(f) {
     el.classList.toggle('active', el.dataset.filter === f);
   });
 }
-function startEdit(btn, pkgId, col) {
-  const span = btn.parentElement;
-  const currentVal = span.childNodes[0].textContent.trim();
-  const input = document.createElement('input');
-  input.type = 'text';
-  input.value = currentVal === '—' ? '' : currentVal;
-  input.style.cssText = 'width:100%;padding:2px 4px;border:1px solid var(--info);border-radius:4px;font-size:12px;font-family:inherit;';
-  input.onblur = function() { saveEdit(pkgId, col, input.value, span); };
-  input.onkeydown = function(e) {
-    if (e.key === 'Enter') input.blur();
-    if (e.key === 'Escape') { span.innerHTML = `${currentVal} <button class="edit-btn" onclick="event.stopPropagation(); startEdit(this, '${pkgId}', '${col}')">✏️</button>`; }
-  };
-  span.innerHTML = '';
-  span.appendChild(input);
-  input.focus();
-}
-async function saveEdit(pkgId, col, value, span) {
-  // Update local data
-  const item = allData.find(p => p['PKG_ID'] === pkgId);
-  if (item) item[col] = value;
-  span.innerHTML = `${value || '—'} <button class="edit-btn" onclick="event.stopPropagation(); startEdit(this, '${pkgId}', '${col}')">✏️</button>`;
-
-  // Send to GAS
-  const res = await apiPost('updateField', { pkg_id: pkgId, col, value });
-  if (res.ok) showToast('Збережено', 'success');
-}
+// startEdit/saveEdit replaced by startInlineEdit/saveInlineEdit
 
 function openMessenger(phone) {
   const clean = phone.replace(/[^+\d]/g, '');
