@@ -346,6 +346,25 @@ body {
 .route-detail-field .val { font-size: 13px; color: var(--text-primary); }
 .route-detail-field .val.empty { color: #ccc; font-style: italic; }
 
+/* Dispatch action buttons */
+.dispatch-action-btn {
+  padding: 5px 12px; border: 1px solid var(--border); border-radius: 6px;
+  background: var(--bg-secondary); cursor: pointer; font-size: 12px;
+  color: var(--text-primary); transition: all .15s;
+}
+.dispatch-action-btn:hover { background: var(--bg-tertiary); }
+.dispatch-action-btn.edit-btn { border-color: var(--info); color: var(--info); }
+.dispatch-action-btn.edit-btn.active-edit { background: var(--danger); color: #fff; border-color: var(--danger); }
+.dispatch-action-btn.save-btn { border: none; }
+
+/* Dispatch edit inputs */
+.disp-edit-input {
+  width: 100%; padding: 4px 8px; border: 1px solid var(--info);
+  border-radius: 4px; font-size: 13px; background: var(--bg-primary);
+  color: var(--text-primary); box-sizing: border-box;
+}
+.disp-edit-input:focus { outline: none; box-shadow: 0 0 0 2px rgba(59,130,246,0.3); }
+
 /* Add Parcel to Route Form */
 .route-add-form-overlay {
   position: fixed; top: 0; left: 0; right: 0; bottom: 0;
@@ -3744,10 +3763,12 @@ function renderDispatchView(disp) {
   document.getElementById('routeTableWrap').innerHTML = html;
 }
 
+var currentDispatchIdx = null;
+
 function openDispatchDetail(idx) {
+  currentDispatchIdx = idx;
   var r = routeData[idx];
   if (!r) return;
-  // Reuse route detail overlay
   var overlay = document.getElementById('routeDetailOverlay');
   if (!overlay) {
     overlay = document.createElement('div');
@@ -3757,9 +3778,17 @@ function openDispatchDetail(idx) {
     document.body.appendChild(overlay);
   }
 
-  var html = '<div class="route-detail-panel">' +
+  var html = '<div class="route-detail-panel" id="dispatchDetailPanel">' +
     '<button class="detail-close" onclick="closeRouteDetail()">✕</button>' +
-    '<h3>📥 Відправка <span style="font-size:12px;font-weight:400;color:var(--text-secondary);">' + (r['DISPATCH_ID'] || '') + '</span></h3>';
+    '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">' +
+      '<h3 style="margin:0;">📥 Відправка <span style="font-size:12px;font-weight:400;color:var(--text-secondary);">' + (r['DISPATCH_ID'] || '') + '</span></h3>' +
+      '<div style="display:flex;gap:6px;">' +
+        '<button class="dispatch-action-btn" onclick="printDispatchDetail(' + idx + ')" title="Друк">🖨️ Друк</button>' +
+        '<button class="dispatch-action-btn edit-btn" onclick="toggleDispatchEdit(' + idx + ')" id="dispEditToggle" title="Редагувати">✏️ Редагувати</button>' +
+      '</div>' +
+    '</div>';
+
+  // Read-only sections
   html += renderRouteDetailSection('Відправник', [
     ['Піб відправника', r['Піб відправника']], ['Телефон відправника', r['Телефон відправника']],
     ['CLI_ID', r['CLI_ID']], ['ID_смарт клієнта', r['ID_смарт клієнта']]
@@ -3773,24 +3802,202 @@ function openDispatchDetail(idx) {
     ['Опис посилки', r['Опис посилки']],
     ['Фото', r['Фото посилки'] ? '<a href="' + r['Фото посилки'] + '" target="_blank" style="color:var(--info);">📷 Переглянути</a>' : '']
   ]);
-  html += renderRouteDetailSection('Фінанси', [
-    ['Сума', r['Сума']], ['Валюта', r['Валюта']],
-    ['Завдаток', r['Завдаток']], ['Валюта завдатку', r['Валюта завдатку']],
-    ['Форма оплати', r['Форма оплати']], ['Статус оплати', r['Статус оплати']],
-    ['Борг', r['Борг']]
-  ]);
+
+  // Editable finance section
+  html += '<div class="route-detail-section" id="dispFinanceSection">' +
+    '<div class="route-detail-section-title">Фінанси</div>' +
+    '<div class="route-detail-grid">' +
+      dispEditableField('Сума', r['Сума'], 'number') +
+      dispReadField('Валюта', r['Валюта']) +
+      dispEditableField('Завдаток', r['Завдаток'], 'number') +
+      dispReadField('Валюта завдатку', r['Валюта завдатку']) +
+      dispEditableSelect('Форма оплати', r['Форма оплати'], ['Готівка', 'Безготівка', 'Картка', 'Інше']) +
+      dispEditableSelect('Статус оплати', r['Статус оплати'], ['Оплачено', 'Частково', 'Не оплачено']) +
+      dispEditableField('Борг', r['Борг'], 'number') +
+    '</div></div>';
+
   html += renderRouteDetailSection('Рейс', [
     ['Дата створення', r['Дата створення']], ['Дата рейсу', r['Дата рейсу']],
     ['Водій', r['Водій']], ['Номер авто', r['Номер авто']],
     ['AUTO_ID', r['AUTO_ID']], ['RTE_ID', r['RTE_ID']]
   ]);
-  html += renderRouteDetailSection('Системні', [
-    ['DISPATCH_ID', r['DISPATCH_ID']], ['PKG_ID', r['PKG_ID']],
-    ['Статус', r['Статус']], ['Примітка', r['Примітка']]
-  ]);
+
+  // Editable status + note
+  html += '<div class="route-detail-section" id="dispStatusSection">' +
+    '<div class="route-detail-section-title">Статус / Системні</div>' +
+    '<div class="route-detail-grid">' +
+      dispReadField('DISPATCH_ID', r['DISPATCH_ID']) +
+      dispReadField('PKG_ID', r['PKG_ID']) +
+      dispEditableSelect('Статус', r['Статус'], ['Нова', 'В дорозі', 'Доставлено', 'Повернення', 'Скасовано']) +
+      dispEditableField('Примітка', r['Примітка'], 'text') +
+    '</div></div>';
+
+  // Save button (hidden by default, shown in edit mode)
+  html += '<div id="dispSaveBar" style="display:none;padding:12px;text-align:center;">' +
+    '<button class="dispatch-action-btn save-btn" onclick="saveDispatchEdits(' + idx + ')" style="background:var(--success);color:#fff;padding:8px 24px;font-size:14px;">💾 Зберегти зміни</button>' +
+    '<button class="dispatch-action-btn" onclick="toggleDispatchEdit(' + idx + ')" style="margin-left:8px;">Скасувати</button>' +
+  '</div>';
+
   html += '</div>';
   overlay.innerHTML = html;
   overlay.classList.add('open');
+}
+
+function dispReadField(label, val) {
+  return '<div class="route-detail-field"><label>' + label + '</label><div class="val ' + (val ? '' : 'empty') + '">' + (val || '—') + '</div></div>';
+}
+
+function dispEditableField(label, val, type) {
+  var v = val || '';
+  return '<div class="route-detail-field disp-editable-wrap">' +
+    '<label>' + label + '</label>' +
+    '<div class="val disp-view-mode ' + (v ? '' : 'empty') + '">' + (v || '—') + '</div>' +
+    '<input class="disp-edit-input disp-edit-mode" type="' + type + '" value="' + v + '" data-col="' + label + '" style="display:none;" />' +
+  '</div>';
+}
+
+function dispEditableSelect(label, val, options) {
+  var v = val || '';
+  var opts = options.map(function(o) {
+    return '<option value="' + o + '"' + (o === v ? ' selected' : '') + '>' + o + '</option>';
+  }).join('');
+  return '<div class="route-detail-field disp-editable-wrap">' +
+    '<label>' + label + '</label>' +
+    '<div class="val disp-view-mode ' + (v ? '' : 'empty') + '">' + (v || '—') + '</div>' +
+    '<select class="disp-edit-input disp-edit-mode" data-col="' + label + '" style="display:none;">' +
+      '<option value="">— Не вказано —</option>' + opts +
+    '</select>' +
+  '</div>';
+}
+
+var dispatchEditMode = false;
+function toggleDispatchEdit(idx) {
+  dispatchEditMode = !dispatchEditMode;
+  var panel = document.getElementById('dispatchDetailPanel');
+  if (!panel) return;
+  var viewEls = panel.querySelectorAll('.disp-view-mode');
+  var editEls = panel.querySelectorAll('.disp-edit-mode');
+  var saveBar = document.getElementById('dispSaveBar');
+  var toggleBtn = document.getElementById('dispEditToggle');
+
+  viewEls.forEach(function(el) { el.style.display = dispatchEditMode ? 'none' : ''; });
+  editEls.forEach(function(el) { el.style.display = dispatchEditMode ? '' : 'none'; });
+  if (saveBar) saveBar.style.display = dispatchEditMode ? '' : 'none';
+  if (toggleBtn) {
+    toggleBtn.textContent = dispatchEditMode ? '❌ Скасувати' : '✏️ Редагувати';
+    toggleBtn.classList.toggle('active-edit', dispatchEditMode);
+  }
+}
+
+function saveDispatchEdits(idx) {
+  var r = routeData[idx];
+  if (!r) return;
+  var d = dispatches[activeRouteIdx];
+  if (!d) { showToast('Помилка: відправка не знайдена', 'error'); return; }
+
+  var inputs = document.querySelectorAll('#dispatchDetailPanel .disp-edit-input');
+  var changes = [];
+  inputs.forEach(function(inp) {
+    var col = inp.getAttribute('data-col');
+    var newVal = inp.value;
+    var oldVal = r[col] || '';
+    if (String(newVal) !== String(oldVal)) {
+      changes.push({ col: col, value: newVal });
+    }
+  });
+
+  if (changes.length === 0) {
+    showToast('Нічого не змінено', 'info');
+    dispatchEditMode = false;
+    toggleDispatchEdit(idx);
+    return;
+  }
+
+  showToast('Збереження ' + changes.length + ' змін...', 'info');
+
+  var promises = changes.map(function(c) {
+    return apiPost('updateDispatch', {
+      sheetName: d.sheetName,
+      dispatch_id: r['DISPATCH_ID'],
+      col: c.col,
+      value: c.value
+    });
+  });
+
+  Promise.all(promises).then(function(results) {
+    var failed = results.filter(function(res) { return !res.ok; });
+    if (failed.length > 0) {
+      showToast('Помилка збереження: ' + (failed[0].error || 'Невідомо'), 'error');
+      return;
+    }
+    // Update local data
+    changes.forEach(function(c) { r[c.col] = c.value; });
+    showToast('Збережено!', 'success');
+    dispatchEditMode = false;
+    openDispatchDetail(idx); // Refresh the panel
+    renderDispatchView(d);   // Refresh the table
+  }).catch(function() {
+    showToast('Помилка мережі', 'error');
+  });
+}
+
+// ===== DISPATCH PRINT =====
+function printDispatchDetail(idx) {
+  var r = routeData[idx];
+  if (!r) return;
+
+  var printWin = window.open('', '_blank', 'width=800,height=600');
+  var html = '<!DOCTYPE html><html><head><meta charset="UTF-8">' +
+    '<title>Відправка ' + (r['DISPATCH_ID'] || '') + '</title>' +
+    '<style>' +
+      'body{font-family:Arial,sans-serif;padding:20px;color:#333;font-size:13px;}' +
+      'h1{font-size:18px;margin-bottom:4px;}' +
+      '.sub{color:#666;font-size:12px;margin-bottom:16px;}' +
+      'table{width:100%;border-collapse:collapse;margin-bottom:16px;}' +
+      'th,td{border:1px solid #ccc;padding:6px 8px;text-align:left;font-size:12px;}' +
+      'th{background:#f5f5f5;font-weight:600;width:35%;}' +
+      '.section{font-size:14px;font-weight:700;background:#e8e8e8;padding:6px 8px;margin-top:12px;}' +
+      '.footer{margin-top:30px;display:flex;justify-content:space-between;}' +
+      '.sign-line{border-top:1px solid #333;width:200px;text-align:center;padding-top:4px;font-size:11px;}' +
+      '@media print{body{padding:10px;} .no-print{display:none!important;}}' +
+    '</style></head><body>' +
+    '<div class="no-print" style="margin-bottom:10px;">' +
+      '<button onclick="window.print()" style="padding:8px 16px;font-size:14px;cursor:pointer;">🖨️ Друкувати</button>' +
+      '<button onclick="window.close()" style="padding:8px 16px;font-size:14px;cursor:pointer;margin-left:8px;">✕ Закрити</button>' +
+    '</div>' +
+    '<h1>📥 Відправка №' + (r['Внутрішній №'] || r['DISPATCH_ID'] || '—') + '</h1>' +
+    '<div class="sub">Дата: ' + (r['Дата створення'] || '—') + ' | Рейс: ' + (r['Дата рейсу'] || '—') + ' | Водій: ' + (r['Водій'] || '—') + ' | Авто: ' + (r['Номер авто'] || '—') + '</div>';
+
+  html += '<table>' +
+    '<tr class="section"><td colspan="2">Відправник</td></tr>' +
+    '<tr><th>Піб відправника</th><td>' + (r['Піб відправника'] || '—') + '</td></tr>' +
+    '<tr><th>Телефон відправника</th><td>' + (r['Телефон відправника'] || '—') + '</td></tr>' +
+    '<tr class="section"><td colspan="2">Отримувач</td></tr>' +
+    '<tr><th>Піб отримувача</th><td>' + (r['Піб отримувача'] || '—') + '</td></tr>' +
+    '<tr><th>Телефон отримувача</th><td>' + (r['Телефон отримувача'] || '—') + '</td></tr>' +
+    '<tr><th>Адреса отримувача</th><td>' + (r['Адреса отримувача'] || '—') + '</td></tr>' +
+    '<tr class="section"><td colspan="2">Посилка</td></tr>' +
+    '<tr><th>Внутрішній №</th><td>' + (r['Внутрішній №'] || '—') + '</td></tr>' +
+    '<tr><th>Вага</th><td>' + (r['Вага'] || '—') + ' кг</td></tr>' +
+    '<tr><th>Опис посилки</th><td>' + (r['Опис посилки'] || '—') + '</td></tr>' +
+    '<tr class="section"><td colspan="2">Фінанси</td></tr>' +
+    '<tr><th>Сума</th><td>' + (r['Сума'] || '—') + ' ' + (r['Валюта'] || '') + '</td></tr>' +
+    '<tr><th>Завдаток</th><td>' + (r['Завдаток'] || '—') + ' ' + (r['Валюта завдатку'] || '') + '</td></tr>' +
+    '<tr><th>Борг</th><td style="font-weight:700;color:#c00;">' + (r['Борг'] || '0') + '</td></tr>' +
+    '<tr><th>Форма оплати</th><td>' + (r['Форма оплати'] || '—') + '</td></tr>' +
+    '<tr><th>Статус оплати</th><td>' + (r['Статус оплати'] || '—') + '</td></tr>' +
+    '<tr><th>Примітка</th><td>' + (r['Примітка'] || '—') + '</td></tr>' +
+  '</table>';
+
+  html += '<div class="footer">' +
+    '<div class="sign-line">Відправник</div>' +
+    '<div class="sign-line">Менеджер</div>' +
+    '<div class="sign-line">Водій</div>' +
+  '</div>';
+
+  html += '</body></html>';
+  printWin.document.write(html);
+  printWin.document.close();
 }
 
 // ===== EXPENSES VIEW =====
