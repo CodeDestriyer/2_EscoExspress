@@ -886,7 +886,9 @@ body {
   z-index: 400;
   background: #fff;
   border-top: 1px solid var(--border);
-  padding: 4px 0;
+  padding: 6px 0;
+  padding-bottom: max(6px, env(safe-area-inset-bottom));
+  box-shadow: 0 -2px 12px rgba(0,0,0,0.06);
 }
 .bottom-nav-items {
   display: flex;
@@ -896,24 +898,43 @@ body {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 1px;
-  padding: 4px 8px;
+  gap: 2px;
+  padding: 4px 10px;
   background: none;
   border: none;
   font-family: inherit;
-  font-size: 9px;
+  font-size: 10px;
   color: var(--text-secondary);
   cursor: pointer;
+  border-radius: 8px;
+  transition: all 0.15s;
+  position: relative;
 }
-.bottom-nav-item .nav-icon { font-size: 18px; }
-.bottom-nav-item.active { color: var(--accent); }
+.bottom-nav-item:active { transform: scale(0.92); }
+.bottom-nav-item .nav-icon { font-size: 20px; }
+.bottom-nav-item.active {
+  color: var(--primary);
+  font-weight: 600;
+}
+.bottom-nav-item.active::after {
+  content: '';
+  position: absolute;
+  top: -6px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 20px;
+  height: 3px;
+  border-radius: 2px;
+  background: var(--primary);
+}
 
 /* ===== MOBILE SIDEBAR OVERLAY ===== */
 .sidebar-overlay {
   display: none;
   position: fixed;
   inset: 0;
-  background: rgba(0,0,0,0.5);
+  background: rgba(0,0,0,0.35);
+  backdrop-filter: blur(2px);
   z-index: 200;
 }
 .sidebar-overlay.open { display: block; }
@@ -921,39 +942,71 @@ body {
 .mobile-sidebar {
   position: fixed;
   top: 0;
-  left: -200px;
-  width: 200px;
+  left: -280px;
+  width: 280px;
   height: 100%;
-  background: linear-gradient(180deg, #1e3a5f, #0f2744);
+  background: linear-gradient(180deg, #f8fafc, #f1f5f9);
   z-index: 201;
-  transition: left 0.3s;
+  transition: left 0.3s cubic-bezier(.4,0,.2,1);
   overflow-y: auto;
   padding-top: 56px;
+  box-shadow: 4px 0 24px rgba(0,0,0,0.15);
 }
 .mobile-sidebar.open { left: 0; }
+
+.mobile-sidebar .mob-section-title {
+  padding: 14px 16px 6px;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+  letter-spacing: 0.5px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.mobile-sidebar .mob-section-title:not(:first-child) {
+  border-top: 1px solid var(--border);
+  margin-top: 4px;
+}
+
 .mobile-sidebar .mob-item {
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding: 10px 14px;
-  margin: 3px 8px;
-  border-radius: 8px;
-  color: #fff;
-  font-size: 12px;
+  margin: 3px 10px;
+  border-radius: 10px;
+  color: var(--text-primary);
+  font-size: 13px;
   font-weight: 500;
-  background: rgba(255,255,255,0.08);
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.06);
   cursor: pointer;
-  transition: background 0.15s;
+  transition: all 0.15s;
 }
-.mobile-sidebar .mob-item:hover { background: rgba(255,255,255,0.15); }
-.mobile-sidebar .mob-item.active { background: rgba(255,255,255,0.25); }
-.mobile-sidebar .mob-section-title {
-  padding: 10px 14px 4px;
-  font-size: 10px;
+.mobile-sidebar .mob-item:hover {
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  transform: translateX(3px);
+}
+.mobile-sidebar .mob-item.active {
+  background: linear-gradient(135deg, #dbeafe, #bfdbfe);
+  color: #1d4ed8;
   font-weight: 600;
-  text-transform: uppercase;
-  color: rgba(255,255,255,0.4);
-  letter-spacing: 0.5px;
+  box-shadow: 0 2px 8px rgba(59,130,246,0.2);
+}
+.mobile-sidebar .mob-item .badge-count {
+  font-size: 11px;
+  font-weight: 700;
+  background: rgba(0,0,0,0.07);
+  padding: 2px 8px;
+  border-radius: 10px;
+  min-width: 20px;
+  text-align: center;
+}
+.mobile-sidebar .mob-item.active .badge-count {
+  background: rgba(29,78,216,0.15);
+  color: #1d4ed8;
 }
 
 /* ===== ADD FORM BOTTOM-SHEET ===== */
@@ -1499,17 +1552,21 @@ body {
 <!-- ===== MOBILE SIDEBAR ===== -->
 <div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleMobileSidebar()"></div>
 <nav class="mobile-sidebar" id="mobileSidebar">
+  <div style="display:flex;align-items:center;justify-content:space-between;padding:0 16px 8px;">
+    <div style="font-size:15px;font-weight:700;color:var(--text-primary);">Фільтри</div>
+    <button onclick="toggleMobileSidebar()" style="background:none;border:none;font-size:22px;color:var(--text-secondary);cursor:pointer;padding:4px;">✕</button>
+  </div>
   <div class="mob-section-title">🧭 Напрямок</div>
-  <div class="mob-item active" onclick="setDirection('ue')">🇺🇦 УК → Європа <span class="badge-count" id="mobCountUe">0</span></div>
-  <div class="mob-item" onclick="setDirection('eu')">🇪🇺 Європа → УК <span class="badge-count" id="mobCountEu">0</span></div>
+  <div class="mob-item active" onclick="setDirection('ue');toggleMobileSidebar();">🇺🇦 УК → Європа <span class="badge-count" id="mobCountUe">0</span></div>
+  <div class="mob-item" onclick="setDirection('eu');toggleMobileSidebar();">🇪🇺 Європа → УК <span class="badge-count" id="mobCountEu">0</span></div>
   <div class="mob-section-title">📋 Вид</div>
-  <div class="mob-item" onclick="setView('parcels')">📦 Посилки</div>
-  <div class="mob-item" onclick="setView('passengers')">👤 Пасажири</div>
+  <div class="mob-item" onclick="setView('parcels');toggleMobileSidebar();">📦 Посилки</div>
+  <div class="mob-item" onclick="setView('passengers');toggleMobileSidebar();">👤 Пасажири</div>
   <div class="mob-section-title">🔍 Перевірка</div>
-  <div class="mob-item active" onclick="setFilter('all')">Всі</div>
-  <div class="mob-item" onclick="setFilter('checking')">В перевірці</div>
-  <div class="mob-item" onclick="setFilter('ready')">Готові</div>
-  <div class="mob-item" onclick="setFilter('unknown')">Невідомі</div>
+  <div class="mob-item active" onclick="setFilter('all');toggleMobileSidebar();">Всі</div>
+  <div class="mob-item" onclick="setFilter('checking');toggleMobileSidebar();">В перевірці</div>
+  <div class="mob-item" onclick="setFilter('ready');toggleMobileSidebar();">Готові</div>
+  <div class="mob-item" onclick="setFilter('unknown');toggleMobileSidebar();">Невідомі</div>
 </nav>
 
 <!-- ===== BULK ACTION MENU ===== -->
