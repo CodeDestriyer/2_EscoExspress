@@ -365,6 +365,41 @@ body {
 }
 .disp-edit-input:focus { outline: none; box-shadow: 0 0 0 2px rgba(59,130,246,0.3); }
 
+/* Dispatch Print Dialog */
+.disp-print-dialog {
+  background: var(--bg-primary); border-radius: 12px; padding: 20px;
+  max-width: 900px; width: 95vw; max-height: 90vh; overflow-y: auto;
+  position: relative; margin: auto;
+}
+.disp-print-sub { color: var(--text-secondary); font-size: 12px; margin-bottom: 12px; }
+.disp-print-cols-title { font-weight: 600; font-size: 13px; margin-bottom: 8px; }
+.disp-print-cols {
+  display: flex; flex-wrap: wrap; gap: 4px 12px; margin-bottom: 10px;
+}
+.disp-print-col-check {
+  display: flex; align-items: center; gap: 4px; font-size: 12px;
+  cursor: pointer; padding: 3px 6px; border-radius: 4px; transition: background .15s;
+}
+.disp-print-col-check:hover { background: var(--bg-secondary); }
+.disp-print-col-check input { margin: 0; cursor: pointer; }
+.disp-print-actions { display: flex; gap: 6px; margin-bottom: 12px; }
+.disp-print-actions button {
+  padding: 4px 10px; font-size: 11px; border: 1px solid var(--border);
+  border-radius: 4px; background: var(--bg-secondary); cursor: pointer;
+  color: var(--text-primary);
+}
+.disp-print-actions button:hover { background: var(--bg-tertiary); }
+.disp-print-preview-wrap {
+  border: 1px solid var(--border); border-radius: 6px; padding: 8px;
+  max-height: 250px; overflow: auto; margin-bottom: 8px; background: var(--bg-secondary);
+}
+.disp-print-table { width: 100%; border-collapse: collapse; font-size: 11px; }
+.disp-print-table th, .disp-print-table td {
+  border: 1px solid var(--border); padding: 3px 5px; text-align: left;
+}
+.disp-print-table th { background: var(--bg-tertiary); font-weight: 600; white-space: nowrap; }
+.disp-print-table tr:nth-child(even) { background: var(--bg-primary); }
+
 /* Add Parcel to Route Form */
 .route-add-form-overlay {
   position: fixed; top: 0; left: 0; right: 0; bottom: 0;
@@ -3722,6 +3757,7 @@ function renderDispatchView(disp) {
       '<div class="route-header-stats">📦 ' + routeData.length + ' записів · ⚖️ ' + totalWeight.toFixed(1) + ' кг · 💰 ' + totalSum + '</div>' +
     '</div>' +
     '<div class="route-header-actions">' +
+      '<button onclick="openDispatchPrintDialog()">🖨️ Друк списку</button>' +
       '<button onclick="refreshRouteView()">🔄 Оновити</button>' +
       '<button onclick="backToParcels()">← Назад</button>' +
     '</div>';
@@ -3783,7 +3819,7 @@ function openDispatchDetail(idx) {
     '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">' +
       '<h3 style="margin:0;">📥 Відправка <span style="font-size:12px;font-weight:400;color:var(--text-secondary);">' + (r['DISPATCH_ID'] || '') + '</span></h3>' +
       '<div style="display:flex;gap:6px;">' +
-        '<button class="dispatch-action-btn" onclick="printDispatchDetail(' + idx + ')" title="Друк">🖨️ Друк</button>' +
+        '<button class="dispatch-action-btn" onclick="printSingleDispatch(' + idx + ')" title="Друк">🖨️ Друк</button>' +
         '<button class="dispatch-action-btn edit-btn" onclick="toggleDispatchEdit(' + idx + ')" id="dispEditToggle" title="Редагувати">✏️ Редагувати</button>' +
       '</div>' +
     '</div>';
@@ -3941,61 +3977,209 @@ function saveDispatchEdits(idx) {
   });
 }
 
-// ===== DISPATCH PRINT =====
-function printDispatchDetail(idx) {
+// ===== DISPATCH PRINT LIST =====
+var dispPrintCols = [
+  { key: '№',                  label: '№',           on: true,  getter: function(r,i){ return i+1; } },
+  { key: 'Внутрішній №',       label: 'Внутр. №',    on: true  },
+  { key: 'Піб відправника',    label: 'Відправник',   on: true  },
+  { key: 'Телефон відправника', label: 'Тел. відпр.',  on: true  },
+  { key: 'Піб отримувача',     label: 'Отримувач',    on: true  },
+  { key: 'Телефон отримувача',  label: 'Тел. отрим.',  on: true  },
+  { key: 'Адреса отримувача',   label: 'Адреса',       on: true  },
+  { key: 'Опис посилки',        label: 'Опис',         on: true  },
+  { key: 'Вага',                label: 'Вага',         on: true  },
+  { key: 'Сума',                label: 'Сума',         on: true  },
+  { key: 'Валюта',              label: 'Валюта',       on: false },
+  { key: 'Завдаток',            label: 'Завдаток',     on: false },
+  { key: 'Борг',                label: 'Борг',         on: false },
+  { key: 'Форма оплати',        label: 'Оплата',       on: false },
+  { key: 'Статус оплати',       label: 'Статус опл.',  on: false },
+  { key: 'Статус',              label: 'Статус',       on: false },
+  { key: 'Примітка',            label: 'Примітка',     on: true  },
+  { key: 'Дата створення',      label: 'Дата',         on: false }
+];
+
+function openDispatchPrintDialog() {
+  if (!routeData || routeData.length === 0) {
+    showToast('Немає записів для друку', 'error');
+    return;
+  }
+
+  var overlay = document.getElementById('dispPrintOverlay');
+  if (!overlay) {
+    overlay = document.createElement('div');
+    overlay.id = 'dispPrintOverlay';
+    overlay.className = 'route-detail-overlay';
+    overlay.onclick = function(e) { if (e.target === overlay) overlay.classList.remove('open'); };
+    document.body.appendChild(overlay);
+  }
+
+  var d = dispatches[activeRouteIdx];
+  var cityName = d ? (d.city || d.sheetName) : '';
+
+  var html = '<div class="disp-print-dialog">' +
+    '<button class="detail-close" onclick="document.getElementById(\'dispPrintOverlay\').classList.remove(\'open\')">✕</button>' +
+    '<h3>🖨️ Друк списку відправок</h3>' +
+    '<div class="disp-print-sub">' + cityName + ' — ' + routeData.length + ' записів</div>' +
+
+    '<div class="disp-print-cols-title">Оберіть колонки для друку:</div>' +
+    '<div class="disp-print-cols">';
+
+  dispPrintCols.forEach(function(c, i) {
+    html += '<label class="disp-print-col-check">' +
+      '<input type="checkbox" ' + (c.on ? 'checked' : '') + ' onchange="dispPrintCols[' + i + '].on=this.checked; updateDispPrintPreview();" />' +
+      '<span>' + c.label + '</span>' +
+    '</label>';
+  });
+
+  html += '</div>' +
+    '<div class="disp-print-actions">' +
+      '<button onclick="selectAllDispPrintCols(true)">Вибрати всі</button>' +
+      '<button onclick="selectAllDispPrintCols(false)">Зняти всі</button>' +
+    '</div>' +
+    '<div class="disp-print-preview-wrap"><div id="dispPrintPreview"></div></div>' +
+    '<div style="text-align:center;padding:12px;">' +
+      '<button class="dispatch-action-btn save-btn" onclick="executeDispatchPrint()" style="background:var(--info);color:#fff;padding:10px 32px;font-size:14px;">🖨️ Друкувати</button>' +
+    '</div>' +
+  '</div>';
+
+  overlay.innerHTML = html;
+  overlay.classList.add('open');
+  updateDispPrintPreview();
+}
+
+function selectAllDispPrintCols(state) {
+  dispPrintCols.forEach(function(c) { c.on = state; });
+  var checks = document.querySelectorAll('.disp-print-col-check input');
+  checks.forEach(function(cb) { cb.checked = state; });
+  updateDispPrintPreview();
+}
+
+function updateDispPrintPreview() {
+  var el = document.getElementById('dispPrintPreview');
+  if (!el) return;
+  var activeCols = dispPrintCols.filter(function(c) { return c.on; });
+  if (activeCols.length === 0) { el.innerHTML = '<div style="color:#999;text-align:center;padding:20px;">Оберіть хоча б одну колонку</div>'; return; }
+
+  var previewRows = routeData.slice(0, 5); // show max 5 rows in preview
+  var html = '<table class="disp-print-table"><thead><tr>';
+  activeCols.forEach(function(c) { html += '<th>' + c.label + '</th>'; });
+  html += '</tr></thead><tbody>';
+  previewRows.forEach(function(r, i) {
+    html += '<tr>';
+    activeCols.forEach(function(c) {
+      var val = c.getter ? c.getter(r, i) : (r[c.key] || '');
+      html += '<td>' + val + '</td>';
+    });
+    html += '</tr>';
+  });
+  if (routeData.length > 5) {
+    html += '<tr><td colspan="' + activeCols.length + '" style="text-align:center;color:#999;font-style:italic;">... ще ' + (routeData.length - 5) + ' записів</td></tr>';
+  }
+  html += '</tbody></table>';
+  el.innerHTML = html;
+}
+
+function executeDispatchPrint() {
+  var activeCols = dispPrintCols.filter(function(c) { return c.on; });
+  if (activeCols.length === 0) { showToast('Оберіть хоча б одну колонку', 'error'); return; }
+
+  var d = dispatches[activeRouteIdx];
+  var cityName = d ? (d.city || d.sheetName) : '';
+  var dateNow = new Date().toLocaleDateString('uk-UA');
+
+  var printWin = window.open('', '_blank', 'width=1000,height=700');
+  var html = '<!DOCTYPE html><html><head><meta charset="UTF-8">' +
+    '<title>Список відправок — ' + cityName + '</title>' +
+    '<style>' +
+      'body{font-family:Arial,sans-serif;padding:12px;color:#333;font-size:11px;margin:0;}' +
+      'h1{font-size:16px;margin:0 0 2px;}' +
+      '.sub{color:#666;font-size:11px;margin-bottom:10px;}' +
+      'table{width:100%;border-collapse:collapse;}' +
+      'th,td{border:1px solid #999;padding:3px 5px;text-align:left;font-size:10px;vertical-align:top;}' +
+      'th{background:#e8e8e8;font-weight:700;white-space:nowrap;}' +
+      'tr:nth-child(even){background:#f9f9f9;}' +
+      '.totals{margin-top:8px;font-size:11px;font-weight:600;}' +
+      '.no-print{margin-bottom:10px;}' +
+      '@media print{.no-print{display:none!important;} body{padding:6px;} @page{size:landscape;margin:8mm;}}' +
+    '</style></head><body>' +
+    '<div class="no-print">' +
+      '<button onclick="window.print()" style="padding:6px 16px;font-size:13px;cursor:pointer;">🖨️ Друкувати</button>' +
+      '<button onclick="window.close()" style="padding:6px 16px;font-size:13px;cursor:pointer;margin-left:6px;">✕ Закрити</button>' +
+    '</div>' +
+    '<h1>Список відправок — ' + cityName + '</h1>' +
+    '<div class="sub">Дата друку: ' + dateNow + ' | Кількість: ' + routeData.length + '</div>';
+
+  // Table header
+  html += '<table><thead><tr>';
+  activeCols.forEach(function(c) { html += '<th>' + c.label + '</th>'; });
+  html += '</tr></thead><tbody>';
+
+  // Table rows
+  var totalW = 0, totalS = 0;
+  routeData.forEach(function(r, i) {
+    html += '<tr>';
+    activeCols.forEach(function(c) {
+      var val = c.getter ? c.getter(r, i) : (r[c.key] || '');
+      html += '<td>' + val + '</td>';
+    });
+    html += '</tr>';
+    totalW += parseFloat(r['Вага']) || 0;
+    totalS += parseFloat(r['Сума']) || 0;
+  });
+
+  html += '</tbody></table>';
+  html += '<div class="totals">Всього: ' + routeData.length + ' посилок · Вага: ' + totalW.toFixed(1) + ' кг · Сума: ' + totalS.toFixed(0) + '</div>';
+  html += '</body></html>';
+
+  printWin.document.write(html);
+  printWin.document.close();
+}
+
+function printSingleDispatch(idx) {
   var r = routeData[idx];
   if (!r) return;
-
+  var d = dispatches[activeRouteIdx];
+  var cityName = d ? (d.city || d.sheetName) : '';
   var printWin = window.open('', '_blank', 'width=800,height=600');
   var html = '<!DOCTYPE html><html><head><meta charset="UTF-8">' +
     '<title>Відправка ' + (r['DISPATCH_ID'] || '') + '</title>' +
     '<style>' +
-      'body{font-family:Arial,sans-serif;padding:20px;color:#333;font-size:13px;}' +
-      'h1{font-size:18px;margin-bottom:4px;}' +
-      '.sub{color:#666;font-size:12px;margin-bottom:16px;}' +
-      'table{width:100%;border-collapse:collapse;margin-bottom:16px;}' +
-      'th,td{border:1px solid #ccc;padding:6px 8px;text-align:left;font-size:12px;}' +
+      'body{font-family:Arial,sans-serif;padding:20px;color:#333;font-size:12px;}' +
+      'h1{font-size:16px;margin:0 0 4px;}' +
+      '.sub{color:#666;font-size:11px;margin-bottom:12px;}' +
+      'table{width:100%;border-collapse:collapse;margin-bottom:12px;}' +
+      'th,td{border:1px solid #ccc;padding:4px 8px;text-align:left;font-size:11px;}' +
       'th{background:#f5f5f5;font-weight:600;width:35%;}' +
-      '.section{font-size:14px;font-weight:700;background:#e8e8e8;padding:6px 8px;margin-top:12px;}' +
-      '.footer{margin-top:30px;display:flex;justify-content:space-between;}' +
-      '.sign-line{border-top:1px solid #333;width:200px;text-align:center;padding-top:4px;font-size:11px;}' +
-      '@media print{body{padding:10px;} .no-print{display:none!important;}}' +
+      '.section{font-size:12px;font-weight:700;background:#e8e8e8;padding:4px 8px;}' +
+      '.footer{margin-top:24px;display:flex;justify-content:space-between;}' +
+      '.sign-line{border-top:1px solid #333;width:180px;text-align:center;padding-top:3px;font-size:10px;}' +
+      '@media print{.no-print{display:none!important;} body{padding:10px;}}' +
     '</style></head><body>' +
-    '<div class="no-print" style="margin-bottom:10px;">' +
-      '<button onclick="window.print()" style="padding:8px 16px;font-size:14px;cursor:pointer;">🖨️ Друкувати</button>' +
-      '<button onclick="window.close()" style="padding:8px 16px;font-size:14px;cursor:pointer;margin-left:8px;">✕ Закрити</button>' +
+    '<div class="no-print" style="margin-bottom:8px;">' +
+      '<button onclick="window.print()" style="padding:6px 14px;cursor:pointer;">🖨️ Друкувати</button>' +
+      '<button onclick="window.close()" style="padding:6px 14px;cursor:pointer;margin-left:6px;">✕ Закрити</button>' +
     '</div>' +
-    '<h1>📥 Відправка №' + (r['Внутрішній №'] || r['DISPATCH_ID'] || '—') + '</h1>' +
-    '<div class="sub">Дата: ' + (r['Дата створення'] || '—') + ' | Рейс: ' + (r['Дата рейсу'] || '—') + ' | Водій: ' + (r['Водій'] || '—') + ' | Авто: ' + (r['Номер авто'] || '—') + '</div>';
-
-  html += '<table>' +
-    '<tr class="section"><td colspan="2">Відправник</td></tr>' +
-    '<tr><th>Піб відправника</th><td>' + (r['Піб відправника'] || '—') + '</td></tr>' +
-    '<tr><th>Телефон відправника</th><td>' + (r['Телефон відправника'] || '—') + '</td></tr>' +
-    '<tr class="section"><td colspan="2">Отримувач</td></tr>' +
-    '<tr><th>Піб отримувача</th><td>' + (r['Піб отримувача'] || '—') + '</td></tr>' +
-    '<tr><th>Телефон отримувача</th><td>' + (r['Телефон отримувача'] || '—') + '</td></tr>' +
-    '<tr><th>Адреса отримувача</th><td>' + (r['Адреса отримувача'] || '—') + '</td></tr>' +
+    '<h1>Відправка №' + (r['Внутрішній №'] || r['DISPATCH_ID'] || '—') + '</h1>' +
+    '<div class="sub">' + cityName + ' | Дата: ' + (r['Дата створення'] || '—') + ' | Водій: ' + (r['Водій'] || '—') + ' | Авто: ' + (r['Номер авто'] || '—') + '</div>' +
+    '<table>' +
+    '<tr class="section"><td colspan="2">Відправник / Отримувач</td></tr>' +
+    '<tr><th>Відправник</th><td>' + (r['Піб відправника'] || '—') + ' | ' + (r['Телефон відправника'] || '') + '</td></tr>' +
+    '<tr><th>Отримувач</th><td>' + (r['Піб отримувача'] || '—') + ' | ' + (r['Телефон отримувача'] || '') + '</td></tr>' +
+    '<tr><th>Адреса</th><td>' + (r['Адреса отримувача'] || '—') + '</td></tr>' +
     '<tr class="section"><td colspan="2">Посилка</td></tr>' +
-    '<tr><th>Внутрішній №</th><td>' + (r['Внутрішній №'] || '—') + '</td></tr>' +
-    '<tr><th>Вага</th><td>' + (r['Вага'] || '—') + ' кг</td></tr>' +
-    '<tr><th>Опис посилки</th><td>' + (r['Опис посилки'] || '—') + '</td></tr>' +
+    '<tr><th>Внутр. № / Вага</th><td>' + (r['Внутрішній №'] || '—') + ' | ' + (r['Вага'] || '—') + ' кг</td></tr>' +
+    '<tr><th>Опис</th><td>' + (r['Опис посилки'] || '—') + '</td></tr>' +
     '<tr class="section"><td colspan="2">Фінанси</td></tr>' +
-    '<tr><th>Сума</th><td>' + (r['Сума'] || '—') + ' ' + (r['Валюта'] || '') + '</td></tr>' +
-    '<tr><th>Завдаток</th><td>' + (r['Завдаток'] || '—') + ' ' + (r['Валюта завдатку'] || '') + '</td></tr>' +
-    '<tr><th>Борг</th><td style="font-weight:700;color:#c00;">' + (r['Борг'] || '0') + '</td></tr>' +
-    '<tr><th>Форма оплати</th><td>' + (r['Форма оплати'] || '—') + '</td></tr>' +
-    '<tr><th>Статус оплати</th><td>' + (r['Статус оплати'] || '—') + '</td></tr>' +
+    '<tr><th>Сума / Завдаток</th><td>' + (r['Сума'] || '0') + ' ' + (r['Валюта'] || '') + ' | Завдаток: ' + (r['Завдаток'] || '0') + '</td></tr>' +
+    '<tr><th>Борг</th><td style="font-weight:700;">' + (r['Борг'] || '0') + '</td></tr>' +
     '<tr><th>Примітка</th><td>' + (r['Примітка'] || '—') + '</td></tr>' +
-  '</table>';
-
-  html += '<div class="footer">' +
-    '<div class="sign-line">Відправник</div>' +
-    '<div class="sign-line">Менеджер</div>' +
-    '<div class="sign-line">Водій</div>' +
-  '</div>';
-
-  html += '</body></html>';
+    '</table>' +
+    '<div class="footer">' +
+      '<div class="sign-line">Відправник</div>' +
+      '<div class="sign-line">Менеджер</div>' +
+      '<div class="sign-line">Водій</div>' +
+    '</div></body></html>';
   printWin.document.write(html);
   printWin.document.close();
 }
