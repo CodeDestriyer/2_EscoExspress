@@ -942,58 +942,86 @@ body {
 .mobile-sidebar {
   position: fixed;
   top: 0;
-  left: -280px;
-  width: 280px;
+  left: -300px;
+  width: 300px;
   height: 100%;
   background: linear-gradient(180deg, #f8fafc, #f1f5f9);
   z-index: 201;
   transition: left 0.3s cubic-bezier(.4,0,.2,1);
   overflow-y: auto;
-  padding-top: 56px;
   box-shadow: 4px 0 24px rgba(0,0,0,0.15);
 }
 .mobile-sidebar.open { left: 0; }
 
+.mob-header {
+  position: sticky; top: 0; z-index: 2;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 14px 16px 10px;
+  background: linear-gradient(135deg, #1e3a5f, #2563eb);
+  color: #fff;
+}
+.mob-header-title { font-size: 16px; font-weight: 700; }
+.mob-header-close {
+  background: rgba(255,255,255,0.15); border: none; color: #fff;
+  width: 32px; height: 32px; border-radius: 50%;
+  font-size: 18px; cursor: pointer;
+}
+
+.mob-section { border-bottom: 1px solid var(--border); }
+
 .mobile-sidebar .mob-section-title {
-  padding: 14px 16px 6px;
-  font-size: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 16px;
+  font-size: 11px;
   font-weight: 700;
   text-transform: uppercase;
   color: var(--text-secondary);
   letter-spacing: 0.5px;
-  display: flex;
-  align-items: center;
-  gap: 4px;
+  cursor: pointer;
+  user-select: none;
 }
-.mobile-sidebar .mob-section-title:not(:first-child) {
-  border-top: 1px solid var(--border);
-  margin-top: 4px;
-}
+.mob-toggle { font-size: 10px; transition: transform 0.2s; }
+.mob-toggle.open { transform: rotate(90deg); }
+
+.mob-section-body { padding: 0 0 6px; }
+.mob-section-body.mob-collapsed { display: none; }
 
 .mobile-sidebar .mob-item {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 10px 14px;
-  margin: 3px 10px;
-  border-radius: 10px;
+  padding: 9px 12px;
+  margin: 2px 10px;
+  border-radius: 8px;
   color: var(--text-primary);
   font-size: 13px;
   font-weight: 500;
   background: #fff;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+  box-shadow: 0 1px 2px rgba(0,0,0,0.05);
   cursor: pointer;
   transition: all 0.15s;
 }
 .mobile-sidebar .mob-item:hover {
   box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-  transform: translateX(3px);
+  transform: translateX(2px);
 }
-.mobile-sidebar .mob-item.active {
+.mobile-sidebar .mob-item.active,
+.mobile-sidebar .mob-item.active-ue {
   background: linear-gradient(135deg, #dbeafe, #bfdbfe);
   color: #1d4ed8;
   font-weight: 600;
-  box-shadow: 0 2px 8px rgba(59,130,246,0.2);
+}
+.mobile-sidebar .mob-item.active-eu {
+  background: linear-gradient(135deg, #d1fae5, #a7f3d0);
+  color: #047857;
+  font-weight: 600;
+}
+.mobile-sidebar .mob-item.active-route {
+  background: linear-gradient(135deg, #fef3c7, #fde68a);
+  color: #92400e;
+  font-weight: 600;
 }
 .mobile-sidebar .mob-item .badge-count {
   font-size: 11px;
@@ -1004,7 +1032,8 @@ body {
   min-width: 20px;
   text-align: center;
 }
-.mobile-sidebar .mob-item.active .badge-count {
+.mobile-sidebar .mob-item.active .badge-count,
+.mobile-sidebar .mob-item.active-ue .badge-count {
   background: rgba(29,78,216,0.15);
   color: #1d4ed8;
 }
@@ -1552,21 +1581,64 @@ body {
 <!-- ===== MOBILE SIDEBAR ===== -->
 <div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleMobileSidebar()"></div>
 <nav class="mobile-sidebar" id="mobileSidebar">
-  <div style="display:flex;align-items:center;justify-content:space-between;padding:0 16px 8px;">
-    <div style="font-size:15px;font-weight:700;color:var(--text-primary);">Фільтри</div>
-    <button onclick="toggleMobileSidebar()" style="background:none;border:none;font-size:22px;color:var(--text-secondary);cursor:pointer;padding:4px;">✕</button>
+  <div class="mob-header">
+    <div class="mob-header-title">Меню</div>
+    <button onclick="toggleMobileSidebar()" class="mob-header-close">✕</button>
   </div>
-  <div class="mob-section-title">🧭 Напрямок</div>
-  <div class="mob-item active" onclick="setDirection('ue');toggleMobileSidebar();">🇺🇦 УК → Європа <span class="badge-count" id="mobCountUe">0</span></div>
-  <div class="mob-item" onclick="setDirection('eu');toggleMobileSidebar();">🇪🇺 Європа → УК <span class="badge-count" id="mobCountEu">0</span></div>
-  <div class="mob-section-title">📋 Вид</div>
-  <div class="mob-item" onclick="setView('parcels');toggleMobileSidebar();">📦 Посилки</div>
-  <div class="mob-item" onclick="setView('passengers');toggleMobileSidebar();">👤 Пасажири</div>
-  <div class="mob-section-title">🔍 Перевірка</div>
-  <div class="mob-item active" onclick="setFilter('all');toggleMobileSidebar();">Всі</div>
-  <div class="mob-item" onclick="setFilter('checking');toggleMobileSidebar();">В перевірці</div>
-  <div class="mob-item" onclick="setFilter('ready');toggleMobileSidebar();">Готові</div>
-  <div class="mob-item" onclick="setFilter('unknown');toggleMobileSidebar();">Невідомі</div>
+
+  <!-- Напрямок -->
+  <div class="mob-section">
+    <div class="mob-section-title" onclick="toggleMobSection(this)">🧭 Напрямок <span class="mob-toggle open">▶</span></div>
+    <div class="mob-section-body">
+      <div class="mob-item active" data-dir="ue" onclick="setDirection('ue')">🇺🇦 УК → Європа <span class="badge-count" id="mobCountUe">0</span></div>
+      <div class="mob-item" data-dir="eu" onclick="setDirection('eu')">🇪🇺 Європа → УК <span class="badge-count" id="mobCountEu">0</span></div>
+    </div>
+  </div>
+
+  <!-- Перевірка -->
+  <div class="mob-section">
+    <div class="mob-section-title" onclick="toggleMobSection(this)">🔍 Перевірка <span class="mob-toggle open">▶</span></div>
+    <div class="mob-section-body">
+      <div class="mob-item active" data-mfilter="all" onclick="setVerFilter('all');closeMobileSidebar();">Всі <span class="badge-count" id="mobCountAll">0</span></div>
+      <div class="mob-item" data-mfilter="checking" onclick="setVerFilter('checking');closeMobileSidebar();">В перевірці <span class="badge-count" id="mobCountChecking">0</span></div>
+      <div class="mob-item" data-mfilter="ready" onclick="setVerFilter('ready');closeMobileSidebar();">Готові <span class="badge-count" id="mobCountReady">0</span></div>
+      <div class="mob-item" data-mfilter="unknown" onclick="setVerFilter('unknown');closeMobileSidebar();">Невідомі <span class="badge-count" id="mobCountUnknown">0</span></div>
+    </div>
+  </div>
+
+  <!-- Маршрути -->
+  <div class="mob-section">
+    <div class="mob-section-title" onclick="toggleMobSection(this)">🚚 Маршрути <span class="mob-toggle open">▶</span></div>
+    <div class="mob-section-body" id="mobRoutesSidebar">
+      <!-- Filled by JS -->
+    </div>
+  </div>
+
+  <!-- Відправка -->
+  <div class="mob-section">
+    <div class="mob-section-title" onclick="toggleMobSection(this)">📥 Відправка <span class="mob-toggle">▶</span></div>
+    <div class="mob-section-body mob-collapsed" id="mobDispatchSidebar">
+      <!-- Filled by JS -->
+    </div>
+  </div>
+
+  <!-- Витрати -->
+  <div class="mob-section">
+    <div class="mob-section-title" onclick="toggleMobSection(this)">💰 Витрати <span class="mob-toggle">▶</span></div>
+    <div class="mob-section-body mob-collapsed" id="mobExpensesSidebar">
+      <!-- Filled by JS -->
+    </div>
+  </div>
+
+  <!-- Зведення -->
+  <div class="mob-section">
+    <div class="mob-item" onclick="openSummaryView();closeMobileSidebar();" style="margin:4px 10px;">📊 Зведення рейсів</div>
+  </div>
+
+  <!-- Архів -->
+  <div class="mob-section">
+    <div class="mob-item" onclick="toggleArchiveView();closeMobileSidebar();" style="margin:4px 10px;">🗄️ Архів <span class="badge-count" id="mobCountArchive"></span></div>
+  </div>
 </nav>
 
 <!-- ===== BULK ACTION MENU ===== -->
@@ -1728,20 +1800,17 @@ body {
 <!-- ===== BOTTOM NAV (Mobile) ===== -->
 <nav class="bottom-nav">
   <div class="bottom-nav-items">
-    <button class="bottom-nav-item active" onclick="setView('parcels')">
+    <button class="bottom-nav-item active" onclick="backToParcels()">
       <span class="nav-icon">📦</span> Посилки
-    </button>
-    <button class="bottom-nav-item" onclick="setView('passengers')">
-      <span class="nav-icon">👤</span> Пасажири
     </button>
     <button class="bottom-nav-item" onclick="loadData()">
       <span class="nav-icon">🔄</span> Оновити
     </button>
-    <button class="bottom-nav-item" onclick="openColCfg()">
-      <span class="nav-icon">⚙️</span> Поля
-    </button>
     <button class="bottom-nav-item" onclick="openAddForm()">
       <span class="nav-icon">➕</span> Додати
+    </button>
+    <button class="bottom-nav-item" onclick="openColCfg()">
+      <span class="nav-icon">⚙️</span> Поля
     </button>
   </div>
 </nav>
@@ -3328,9 +3397,13 @@ function bulkOptimizeRoute() {
 
 function setDirection(dir) {
   currentDirection = dir;
-  // Update sidebar items
-  document.querySelectorAll('[data-dir]').forEach(el => {
+  // Update desktop sidebar items
+  document.querySelectorAll('.sidebar [data-dir]').forEach(el => {
     el.className = 'sidebar-item' + (el.dataset.dir === dir ? (dir === 'ue' ? ' active-ue' : ' active-eu') : '');
+  });
+  // Update mobile sidebar items
+  document.querySelectorAll('#mobileSidebar [data-dir]').forEach(el => {
+    el.className = 'mob-item' + (el.dataset.dir === dir ? (dir === 'ue' ? ' active-ue' : ' active-eu') : '');
   });
   renderCards();
   closeMobileSidebar();
@@ -3368,6 +3441,13 @@ function onSearch(value) {
 }
 
 // ===== [SECT-SIDEBAR] SIDEBAR =====
+function toggleMobSection(titleEl) {
+  var body = titleEl.nextElementSibling;
+  var toggle = titleEl.querySelector('.mob-toggle');
+  if (body) body.classList.toggle('mob-collapsed');
+  if (toggle) toggle.classList.toggle('open');
+}
+
 function toggleSection(header) {
   const body = header.nextElementSibling;
   const toggle = header.querySelector('.toggle');
@@ -3407,34 +3487,60 @@ function closeMobileSidebar() {
 var HIDDEN_SHEETS = ['Взірець', 'Зведення рейсів'];
 
 function renderRouteSidebar() {
-  // Routes
-  var container = document.getElementById('routesSidebar');
-  if (container) {
-    container.innerHTML = routes.map(function(r, i) {
-      return '<div class="sidebar-item ' + (currentView === 'route' && activeRouteIdx === i ? 'active-route' : '') + '" onclick="openRouteView(' + i + ')">' +
-        (r.city || r.sheetName) +
-        '<span style="font-size:10px;color:var(--text-secondary)">👤' + (r.paxCount || 0) + ' 📦' + (r.parcelCount || 0) + '</span>' +
-      '</div>';
-    }).join('');
-  }
-  // Dispatches
-  var dispContainer = document.getElementById('dispatchSidebar');
-  if (dispContainer) {
-    dispContainer.innerHTML = dispatches.map(function(d, i) {
-      return '<div class="sidebar-item ' + (currentView === 'dispatch' && activeRouteIdx === i ? 'active-route' : '') + '" onclick="openDispatchView(' + i + ')">' +
-        (d.city || d.sheetName) + ' <span style="font-size:10px;color:var(--text-secondary)">' + (d.rowCount || 0) + '</span>' +
-      '</div>';
-    }).join('');
-  }
-  // Expenses
-  var expContainer = document.getElementById('expensesSidebar');
-  if (expContainer) {
-    expContainer.innerHTML = expenses.map(function(e, i) {
-      return '<div class="sidebar-item ' + (currentView === 'expenses' && activeRouteIdx === i ? 'active-route' : '') + '" onclick="openExpensesView(' + i + ')">' +
-        (e.city || e.sheetName) + ' <span style="font-size:10px;color:var(--text-secondary)">' + (e.rowCount || 0) + '</span>' +
-      '</div>';
-    }).join('');
-  }
+  var isActive = function(view, i) { return currentView === view && activeRouteIdx === i; };
+
+  // Routes — desktop + mobile
+  var routeHtml = routes.map(function(r, i) {
+    return '<div class="sidebar-item ' + (isActive('route', i) ? 'active-route' : '') + '" onclick="openRouteView(' + i + ')">' +
+      (r.city || r.sheetName) +
+      ' <span style="font-size:10px;color:var(--text-secondary)">👤' + (r.paxCount || 0) + ' 📦' + (r.parcelCount || 0) + '</span>' +
+    '</div>';
+  }).join('');
+  var mobRouteHtml = routes.map(function(r, i) {
+    return '<div class="mob-item ' + (isActive('route', i) ? 'active-route' : '') + '" onclick="openRouteView(' + i + ');closeMobileSidebar();">' +
+      (r.city || r.sheetName) +
+      ' <span class="badge-count">👤' + (r.paxCount || 0) + ' 📦' + (r.parcelCount || 0) + '</span>' +
+    '</div>';
+  }).join('') || '<div style="padding:8px 14px;color:var(--text-secondary);font-size:12px;font-style:italic;">Немає маршрутів</div>';
+
+  var el = document.getElementById('routesSidebar');
+  if (el) el.innerHTML = routeHtml;
+  var mobEl = document.getElementById('mobRoutesSidebar');
+  if (mobEl) mobEl.innerHTML = mobRouteHtml;
+
+  // Dispatches — desktop + mobile
+  var dispHtml = dispatches.map(function(d, i) {
+    return '<div class="sidebar-item ' + (isActive('dispatch', i) ? 'active-route' : '') + '" onclick="openDispatchView(' + i + ')">' +
+      (d.city || d.sheetName) + ' <span style="font-size:10px;color:var(--text-secondary)">' + (d.rowCount || 0) + '</span>' +
+    '</div>';
+  }).join('');
+  var mobDispHtml = dispatches.map(function(d, i) {
+    return '<div class="mob-item ' + (isActive('dispatch', i) ? 'active-route' : '') + '" onclick="openDispatchView(' + i + ');closeMobileSidebar();">' +
+      (d.city || d.sheetName) + ' <span class="badge-count">' + (d.rowCount || 0) + '</span>' +
+    '</div>';
+  }).join('') || '<div style="padding:8px 14px;color:var(--text-secondary);font-size:12px;font-style:italic;">Немає відправок</div>';
+
+  var dispEl = document.getElementById('dispatchSidebar');
+  if (dispEl) dispEl.innerHTML = dispHtml;
+  var mobDispEl = document.getElementById('mobDispatchSidebar');
+  if (mobDispEl) mobDispEl.innerHTML = mobDispHtml;
+
+  // Expenses — desktop + mobile
+  var expHtml = expenses.map(function(e, i) {
+    return '<div class="sidebar-item ' + (isActive('expenses', i) ? 'active-route' : '') + '" onclick="openExpensesView(' + i + ')">' +
+      (e.city || e.sheetName) + ' <span style="font-size:10px;color:var(--text-secondary)">' + (e.rowCount || 0) + '</span>' +
+    '</div>';
+  }).join('');
+  var mobExpHtml = expenses.map(function(e, i) {
+    return '<div class="mob-item ' + (isActive('expenses', i) ? 'active-route' : '') + '" onclick="openExpensesView(' + i + ');closeMobileSidebar();">' +
+      (e.city || e.sheetName) + ' <span class="badge-count">' + (e.rowCount || 0) + '</span>' +
+    '</div>';
+  }).join('') || '<div style="padding:8px 14px;color:var(--text-secondary);font-size:12px;font-style:italic;">Немає витрат</div>';
+
+  var expEl = document.getElementById('expensesSidebar');
+  if (expEl) expEl.innerHTML = expHtml;
+  var mobExpEl = document.getElementById('mobExpensesSidebar');
+  if (mobExpEl) mobExpEl.innerHTML = mobExpHtml;
 }
 
 // ===== SWITCH VIEW =====
@@ -4403,10 +4509,19 @@ function updateCounters() {
     setCount('mobCountUe', ue.length);
     setCount('mobCountEu', eu.length);
     const dirData = currentDirection === 'ue' ? ue : eu;
-    setCount('countAll', dirData.length);
-    setCount('countChecking', dirData.filter(p => p['Контроль перевірки'] === 'В перевірці').length);
-    setCount('countReady', dirData.filter(p => p['Контроль перевірки'] === 'Готова до маршруту').length);
-    setCount('countUnknown', dirData.filter(p => p['Статус ліда'] === 'Невідомий').length);
+    var cAll = dirData.length;
+    var cChecking = dirData.filter(p => p['Контроль перевірки'] === 'В перевірці').length;
+    var cReady = dirData.filter(p => p['Контроль перевірки'] === 'Готова до маршруту').length;
+    var cUnknown = dirData.filter(p => p['Статус ліда'] === 'Невідомий').length;
+    setCount('countAll', cAll);
+    setCount('countChecking', cChecking);
+    setCount('countReady', cReady);
+    setCount('countUnknown', cUnknown);
+    // Mobile counters
+    setCount('mobCountAll', cAll);
+    setCount('mobCountChecking', cChecking);
+    setCount('mobCountReady', cReady);
+    setCount('mobCountUnknown', cUnknown);
   } catch(e) { console.error('updateCounters error:', e); }
 }
 
@@ -4427,9 +4542,13 @@ function setFilter(f) {
 
 function setVerFilter(f) {
   currentVerifyFilter = f;
-  // Update desktop sidebar active state
-  document.querySelectorAll('[data-filter]').forEach(el => {
+  // Update desktop sidebar
+  document.querySelectorAll('.sidebar [data-filter]').forEach(el => {
     el.classList.toggle('active', el.dataset.filter === f);
+  });
+  // Update mobile sidebar
+  document.querySelectorAll('#mobileSidebar [data-mfilter]').forEach(el => {
+    el.classList.toggle('active', el.dataset.mfilter === f);
   });
   renderCards();
   updateCounters();
