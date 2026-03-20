@@ -628,7 +628,7 @@ body {
 }
 .qe-address-input::placeholder { color: #aab; font-style: italic; }
 .qe-address-suggestions {
-  position: absolute; top: 100%; left: 0; right: 0;
+  position: fixed;
   z-index: 9999;
   background: #fff;
   border: 1.5px solid var(--primary); border-top: none;
@@ -2532,6 +2532,13 @@ function _createAddressCombo(el, pkgId, col, currentVal, suggestions) {
   const list = document.createElement('div');
   list.className = 'qe-address-suggestions';
 
+  function _positionList() {
+    const rect = input.getBoundingClientRect();
+    list.style.top = rect.bottom + 'px';
+    list.style.left = rect.left + 'px';
+    list.style.width = rect.width + 'px';
+  }
+
   function renderSuggestions(filter) {
     list.innerHTML = '';
     const q = (filter || '').toLowerCase();
@@ -2551,6 +2558,7 @@ function _createAddressCombo(el, pkgId, col, currentVal, suggestions) {
       list.appendChild(item);
     });
     list.classList.add('open');
+    _positionList();
   }
 
   wrap.appendChild(list);
@@ -2575,7 +2583,12 @@ function _createAddressCombo(el, pkgId, col, currentVal, suggestions) {
   if (cardDetails) cardDetails.classList.add('editing-active');
   if (tabPanel) tabPanel.classList.add('editing-active');
 
+  // Reposition on scroll
+  function onScroll() { if (list.classList.contains('open')) _positionList(); }
+  window.addEventListener('scroll', onScroll, true);
+
   function _comboCleanup() {
+    window.removeEventListener('scroll', onScroll, true);
     document.querySelectorAll('.editing-active').forEach(function(e) { e.classList.remove('editing-active'); });
   }
 
